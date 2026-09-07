@@ -1,5 +1,5 @@
-import type { Logger } from 'log4js';
 import type { ServerResponse } from 'node:http';
+import type { Logger } from 'winston';
 import http from 'node:http';
 
 import { VenDriver } from '../interface';
@@ -20,11 +20,21 @@ export class VenNodeDriver extends VenDriver {
 			this.logger.info(`server is listening on http://${host}:${port}`);
 		});
 
+		// 客户端中途断开等场景：避免未处理的 error 事件导致进程崩溃
+		this.server.on('clientError', (err, socket) => {
+			this.logger.warn(`client error: ${err.message}`);
+			socket.destroy();
+		});
+
 		this.server.listen(port, host);
 	}
 
 	public onRequest(cb: (req: IRequest, res: IResponse) => void) {
 		this.server.on('request', (req, res) => {
+			// 响应侧 error 守护：客户端断开后继续写会抛错，吞掉并记录即可
+			res.on('error', (err) => {
+				this.logger.warn(`response error: ${err.message}`);
+			});
 			cb(req, res as IResponse);
 		});
 	}

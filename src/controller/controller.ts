@@ -1,14 +1,6 @@
-import Parameter from 'parameter';
-
 export class Controller {
-	private parameter: Parameter;
 	public constructor() {
 		this.bindMethods();
-		this.parameter = new Parameter();
-	}
-
-	public verifyParam(rule: Parameter.ParameterRules, value: any) {
-		return this.parameter.validate(rule, value);
 	}
 
 	private bindMethods() {

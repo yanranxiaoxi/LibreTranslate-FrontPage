@@ -11,8 +11,9 @@ export default antfu(
 		typescript: true,
 
 		ignores: [
-			'/dist/',
-			'/node_modules/',
+			'public/**',
+			'dist/**',
+			'node_modules/**',
 			'.eslintcache',
 			'debug.log',
 		],

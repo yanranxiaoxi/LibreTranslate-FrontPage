@@ -24,18 +24,30 @@ export class Venation extends Router {
 				const routeIndex: Array<number> = [];
 				const matched = this.checkRoute(ctx, path === '/' ? '' : path, routeIndex);
 				if (!matched) {
-					res.statusCode = 404;
-					res.end('404 Not Found !!!');
+					if (!res.headersSent) {
+						res.statusCode = 404;
+						res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+						res.end('404 Not Found');
+					}
 				}
 				else {
 					await this.run(ctx as any, path === '/' ? '' : path, routeIndex);
-					res.end();
+					if (!res.headersSent) {
+						res.end();
+					}
 				}
 			}
 			catch (ex) {
 				ctx.logger.error(ex);
-				res.statusCode = 500;
-				res.end('500 Internal Server Error !!!');
+				if (!res.headersSent) {
+					res.statusCode = 500;
+					res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+					res.end('500 Internal Server Error');
+				}
+				else {
+					// 响应已开始写出时无法再改状态码，只能断开连接
+					res.destroy();
+				}
 			}
 		});
 	}

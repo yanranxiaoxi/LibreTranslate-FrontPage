@@ -14,9 +14,8 @@ const dailyRotateFileTransport = new winston.transports.DailyRotateFile({
 
 function createLogger(label: string) {
 	return winston.createLogger({
-		defaultMeta: { serverName: os.hostname(), app: 'iot-server-mqtt', label },
-		level: 'info',
-		// 'format': winston.format.combine(winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }), winston.format.json()),
+		defaultMeta: { serverName: os.hostname(), app: CONFIG.projectName, label },
+		level: CONFIG.logLevel,
 		format: winston.format.combine(
 			winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
 			winston.format.printf(
@@ -27,5 +26,5 @@ function createLogger(label: string) {
 	});
 }
 
-const logger = createLogger('mqtt');
+const logger = createLogger(CONFIG.projectName);
 export default logger;

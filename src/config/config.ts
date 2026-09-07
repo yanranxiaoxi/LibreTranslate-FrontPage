@@ -1,4 +1,7 @@
+import { existsSync } from 'node:fs';
+import path from 'node:path';
 import process from 'node:process';
+import { fileURLToPath } from 'node:url';
 import * as packageJson from '../../package.json';
 import 'dotenv/config';
 
@@ -30,6 +33,21 @@ function validatePort(port: string | undefined, defaultPort: number): number {
 	return portNum;
 }
 
+function validateOptionalEnvVar(name: string, value: string | undefined, defaultValue = ''): string {
+	return value || defaultValue;
+}
+
+function validateNumberEnvVar(name: string, value: string | undefined, defaultValue: number): number {
+	if (!value) {
+		return defaultValue;
+	}
+	const num = Number(value);
+	if (Number.isNaN(num) || num < 1) {
+		throw new Error(`Invalid environment variable ${name}: ${value}`);
+	}
+	return num;
+}
+
 export const CONFIG = {
 	env: validateEnvVar('ENV_PRODUCT', process.env.ENV_PRODUCT, 'development'),
 	host: validateEnvVar('SERVER_HOST', process.env.SERVER_HOST, '0.0.0.0'),
@@ -39,4 +57,68 @@ export const CONFIG = {
 	envProduct: validateEnvVar('ENV_PRODUCT', process.env.ENV_PRODUCT, 'development'),
 	projectName: validateEnvVar('PROJECT_NAME', process.env.PROJECT_NAME, packageJson.name),
 	logLevel: validateEnvVar('LOG_LEVEL', process.env.LOG_LEVEL, 'info'),
+
+	/** LibreTranslate 上游 API 配置 */
+	lt: {
+		/** 上游 LibreTranslate API 地址（如 https://translator.api.soraharu.com） */
+		apiUrl: validateEnvVar('LT_API_URL', process.env.LT_API_URL, ''),
+		/** 内置 API key：登录用户代理请求时注入 */
+		apiKey: validateOptionalEnvVar('LT_API_KEY', process.env.LT_API_KEY),
+	},
+
+	/** OpenID Connect 登录配置（全部配置后才启用登录） */
+	oidc: {
+		issuer: validateOptionalEnvVar('OIDC_ISSUER', process.env.OIDC_ISSUER),
+		clientId: validateOptionalEnvVar('OIDC_CLIENT_ID', process.env.OIDC_CLIENT_ID),
+		clientSecret: validateOptionalEnvVar('OIDC_CLIENT_SECRET', process.env.OIDC_CLIENT_SECRET),
+		redirectUri: validateOptionalEnvVar('OIDC_REDIRECT_URI', process.env.OIDC_REDIRECT_URI),
+		scope: validateOptionalEnvVar('OIDC_SCOPE', process.env.OIDC_SCOPE, 'openid profile email'),
+		/** 用户名取自 userinfo 的哪个 claim（Keycloak 为 preferred_username） */
+		usernameClaim: validateOptionalEnvVar('OIDC_USERNAME_CLAIM', process.env.OIDC_USERNAME_CLAIM, 'preferred_username'),
+	},
+
+	/** 会话配置 */
+	session: {
+		/** 会话签名密钥（必填，建议 32+ 随机字节） */
+		secret: validateOptionalEnvVar('SESSION_SECRET', process.env.SESSION_SECRET),
+		cookieName: validateOptionalEnvVar('SESSION_COOKIE_NAME', process.env.SESSION_COOKIE_NAME, 'lt_session'),
+		ttl: validateNumberEnvVar('SESSION_TTL', process.env.SESSION_TTL, 7 * 24 * 60 * 60),
+	},
+
+	/** 静态资源目录：默认为空时自动解析（构建产物 dist/public 或源码 public） */
+	staticDir: validateOptionalEnvVar('STATIC_DIR', process.env.STATIC_DIR),
 } as const;
+
+/**
+ * 解析前端静态资源目录
+ *
+ * 优先级：STATIC_DIR 环境变量 > 运行入口同级的 public/（生产构建产物 dist/public）
+ * > 向上逐级查找项目根下的 public/（开发时 tsx 运行）。
+ */
+export function resolveStaticDir(): string {
+	if (CONFIG.staticDir) {
+		return path.resolve(CONFIG.staticDir);
+	}
+
+	// 构建产物（esbuild 单文件）位于 dist/index.js；tsx 开发时位于 src/controller/*.ts
+	const moduleDir = path.dirname(fileURLToPath(import.meta.url));
+	const sibling = path.join(moduleDir, 'public');
+	if (existsSync(sibling)) {
+		return sibling;
+	}
+
+	// 逐级向上查找 package.json 所在目录下的 public/
+	let current = moduleDir;
+	while (current !== path.dirname(current)) {
+		const candidate = path.join(current, 'public');
+		if (existsSync(candidate)) {
+			return candidate;
+		}
+		const pkg = path.join(current, 'package.json');
+		if (existsSync(pkg)) {
+			break;
+		}
+		current = path.dirname(current);
+	}
+	throw new Error('Cannot resolve static directory. Set STATIC_DIR explicitly.');
+}
