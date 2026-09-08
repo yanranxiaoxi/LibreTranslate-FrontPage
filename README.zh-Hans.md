@@ -2,6 +2,10 @@
 
 # LibreTranslate FrontPage
 
+> [!WARNING]
+> 本项目通过 **Vibe Coding** 方式编写。尽管代码经过人工 review，
+> 但仍无法保证 100% 可控、零缺陷，请自行评估风险后使用。
+
 基于项目自研的 Node.js + TypeScript 框架构建的 LibreTranslate 前端页面服务：一个干净、自适应、支持移动端的单页翻译器（文本 + 文件），可选 OpenID Connect 登录，支持 PWA。
 
 ## 功能

@@ -2,6 +2,11 @@
 
 # LibreTranslate FrontPage
 
+> [!WARNING]
+> This project was written through **Vibe Coding**. Although the code has been
+> reviewed by humans, it cannot be guaranteed to be 100% controlled or
+> bug-free. Use it at your own risk.
+
 A complete front-end service for a [LibreTranslate](https://github.com/LibreTranslate/LibreTranslate) instance, built on the project's own Node.js + TypeScript framework. It ships a clean, responsive single-page translator (text & file), optional OpenID Connect sign-in, and PWA support.
 
 ## Features
