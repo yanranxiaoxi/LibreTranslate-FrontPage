@@ -62,7 +62,7 @@ class Auth extends Controller {
 		}
 
 		try {
-			const currentUrl = new URL(ctx.req.url ?? '/', 'http://localhost');
+			const currentUrl = new URL(ctx.req.url ?? '/', CONFIG.oidc.redirectUri);
 			const params: OidcParams = {
 				state: stored.state,
 				codeVerifier: stored.codeVerifier,
