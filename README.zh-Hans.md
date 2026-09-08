@@ -19,6 +19,7 @@
   - 未登录：浏览器直连 LibreTranslate API（匿名，受 API 侧匿名限流约束）
   - 已登录：请求经本服务 `/api/*` 代理转发并注入服务端 `api_key`（更稳定、限额更高）
   - 本服务不做任何限额/配额管理，仅将请求正确代理 / 直连
+- **登录用户更大的输入上限** — 上游 `/frontend/settings` 只返回全局匿名 `charLimit`（如 5000），无法获知 key 的配额。将 `LT_LOGIN_CHAR_LIMIT` 配置为内置 key 在上游的配额（如 `100000`）后，登录用户输入框即放宽至该值，未登录用户仍沿用上游限制。
 - **仅 OpenID 登录** — 标准授权码流 + S256 PKCE（openid-client v6），至少实测支持 Keycloak；其它 IdP 可通过环境变量适配。展示登录用户名（`preferred_username`），头像暂不处理
 - **PWA** — manifest 与 Service Worker 应用外壳缓存，支持离线打开外壳；上游服务可达时，离线状态亦可直连翻译
 - **多语言** — 内置简体中文与英文；新增语言只需补充 locale 文件并完成注册
@@ -33,7 +34,7 @@
        └── 已登录 ──► /api/translate ─► {LT_API_URL}/translate  代理注入 LT_API_KEY
 ```
 
-- `GET /api/config` 返回 `{ apiUrl }`，供浏览器未登录时直连使用。
+- `GET /api/config` 返回 `{ apiUrl, loginCharLimit? }`，供浏览器未登录时直连使用，并告知登录后输入框可放宽至的上限。
 - `POST /api/translate` / `POST /api/translate_file` 透传上游响应（状态码与 JSON 原样返回）；内置 `api_key` 仅在会话有效且配置了 `LT_API_KEY` 时由服务端追加。
 
 ## 环境变量
@@ -42,6 +43,7 @@
 | --- | --- | --- | --- |
 | `LT_API_URL` | 是 | — | 上游 LibreTranslate 地址，如 `https://translator.api.soraharu.com` |
 | `LT_API_KEY` | 否 | — | 内置 API key，登录用户经代理时注入 |
+| `LT_LOGIN_CHAR_LIMIT` | 否 | `0` | 登录用户的字符上限，应与内置 key 在上游的配额一致（如 `100000`）；`0` = 沿用上游匿名限制 |
 | `OIDC_ISSUER` | 否* | — | OpenID Provider 的 issuer 地址（如 Keycloak realm） |
 | `OIDC_CLIENT_ID` | 否* | — | OIDC 客户端 ID |
 | `OIDC_CLIENT_SECRET` | 否* | — | OIDC 客户端密钥 |

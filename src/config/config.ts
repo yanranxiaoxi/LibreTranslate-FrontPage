@@ -64,6 +64,8 @@ export const CONFIG = {
 		apiUrl: validateEnvVar('LT_API_URL', process.env.LT_API_URL, ''),
 		/** 内置 API key：登录用户代理请求时注入 */
 		apiKey: validateOptionalEnvVar('LT_API_KEY', process.env.LT_API_KEY),
+		/** 登录用户的前端字符上限（与内置 key 配额一致；0 = 不覆盖，沿用上游匿名限制） */
+		loginCharLimit: validateNumberEnvVar('LT_LOGIN_CHAR_LIMIT', process.env.LT_LOGIN_CHAR_LIMIT, 0),
 	},
 
 	/** OpenID Connect 登录配置（全部配置后才启用登录） */

@@ -61,6 +61,7 @@ export async function loadConfig(): Promise<AppConfig> {
 	try {
 		const cfg = await sameOriginJson<AppConfig>('/api/config');
 		configCache.apiUrl = cfg.apiUrl;
+		configCache.loginCharLimit = cfg.loginCharLimit;
 		if (cfg.apiUrl) {
 			storageSet(CFG_KEY, cfg.apiUrl);
 		}
@@ -91,6 +92,13 @@ export function getApiUrl(): string {
 
 export function isLoggedIn(): boolean {
 	return statusCache.loggedIn;
+}
+
+/**
+ * 登录用户的字符上限（服务端配置，0/undefined 表示不覆盖）
+ */
+export function getLoginCharLimit(): number | undefined {
+	return configCache.loginCharLimit;
 }
 
 /**

@@ -48,6 +48,15 @@ export async function initTranslate(root: HTMLElement): Promise<void> {
 		api.getSettings(),
 		api.getLanguages(getLang()),
 	]);
+
+	// 登录用户走本服务代理（注入内置 api_key），其字符上限由内置 key 的配额决定，
+	// 上游 /frontend/settings 只会返回全局匿名值（如 5000），无法感知登录态；
+	// 服务端若配置了 LT_LOGIN_CHAR_LIMIT（与内置 key 配额一致），登录时用它覆盖 UI 限制。
+	const loginLimit = api.isLoggedIn() ? api.getLoginCharLimit() : undefined;
+	if (loginLimit && loginLimit > 0) {
+		settings.charLimit = loginLimit;
+	}
+
 	state.settings = settings;
 	state.langs = langs;
 

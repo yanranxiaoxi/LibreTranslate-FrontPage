@@ -20,6 +20,7 @@ A complete front-end service for a [LibreTranslate](https://github.com/LibreTran
   - Not signed in → the browser calls the LibreTranslate API directly (anonymous, subject to its anonymous rate limits)
   - Signed in → requests go through this service's `/api/*` proxy, which injects the server-side `api_key` (higher, dedicated quota)
   - No quota/usage management is implemented here; requests are simply proxied / passed through
+- **Higher input limit for signed-in users** — upstream `/frontend/settings` only exposes the global anonymous `charLimit` (e.g. 5000) and cannot report a key's quota. Set `LT_LOGIN_CHAR_LIMIT` to the built-in key's quota (e.g. `100000`); signed-in users then get the wider input box while anonymous users keep the upstream limit.
 - **OpenID Connect sign-in only** — standard authorization code flow + S256 PKCE (`openid-client` v6). Verified with Keycloak; other IdPs can be adapted via environment variables. Shows the signed-in user name (`preferred_username`); avatars are out of scope.
 - **PWA** — `manifest.webmanifest` plus a service worker with versioned app-shell caching; the shell opens offline and, when the upstream is reachable, direct-to-API translation remains available
 - **i18n** — Simplified Chinese & English built in; adding a language requires only a locale file plus one registration entry
@@ -34,7 +35,7 @@ Browser ── not signed in ───────────────► {L
        └── signed in ──► /api/translate ─► {LT_API_URL}/translate       (server injects LT_API_KEY)
 ```
 
-- `GET /api/config` returns `{ apiUrl }` so the browser knows where to call directly when signed out.
+- `GET /api/config` returns `{ apiUrl, loginCharLimit? }` so the browser knows where to call directly when signed out, and how wide the input box may be once signed in.
 - `POST /api/translate` / `POST /api/translate_file` transparently proxy the upstream response (same status code & JSON body). The built-in `api_key` is appended server-side only when the session user is valid and `LT_API_KEY` is configured.
 
 ## Environment variables
@@ -43,6 +44,7 @@ Browser ── not signed in ───────────────► {L
 | --- | --- | --- | --- |
 | `LT_API_URL` | yes | — | Upstream LibreTranslate base URL, e.g. `https://translator.api.soraharu.com` |
 | `LT_API_KEY` | no | — | Built-in API key injected by the proxy for signed-in users |
+| `LT_LOGIN_CHAR_LIMIT` | no | `0` | Character limit for signed-in users; should match the built-in key's upstream quota (e.g. `100000`). `0` = keep the upstream anonymous limit |
 | `OIDC_ISSUER` | no* | — | OpenID Provider issuer URL (e.g. `https://sso.example.com/realms/master`) |
 | `OIDC_CLIENT_ID` | no* | — | OIDC client id |
 | `OIDC_CLIENT_SECRET` | no* | — | OIDC client secret |

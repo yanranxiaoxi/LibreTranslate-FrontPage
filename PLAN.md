@@ -36,6 +36,7 @@
 
 - `GET /languages` → `[{code, name, targets[]}]`，支持 `?lang=` 返回本地化语言名
 - `GET /frontend/settings` → `{charLimit, frontendTimeout, apiKeys, keyRequired, suggestions, filesTranslation, supportedFilesFormat[], language:{source,target}}`
+  - 注意：`charLimit` 是**全局匿名值**（如 5000），带不带 `api_key` 请求均相同，**不感知 key 配额**；上游也没有查询某 key 配额的 API（实测匿名 2 万字符 → 400 `exceeds text limit (5000)`，带 key → 200）
 - `POST /translate` body `{q, source, target, format, alternatives, api_key}` → `{translatedText, alternatives?, detectedLanguage?}`
 - `POST /translate_file` multipart(`file, source, target, api_key`) → `{translatedFileUrl}`
 - 错误统一 `{"error": string}`；HTTP 400/403/429/500
@@ -49,6 +50,7 @@
 1. 新增依赖：`openid-client`、`jose`（会话 JWT 签名）
 2. `src/config/config.ts` 新增环境变量：
    - `LT_API_URL`（必填，如 `https://translator.api.soraharu.com`）、`LT_API_KEY`（可选，登录代理注入用）
+   - `LT_LOGIN_CHAR_LIMIT`（可选，默认 0）：登录用户的前端字符上限，应与 `LT_API_KEY` 在上游的配额一致（如 100000）；0 = 沿用上游匿名限制。因上游 `/frontend/settings` 无法反映 key 配额，需由本服务配置并经 `/api/config` 下发
    - `OIDC_ISSUER` / `OIDC_CLIENT_ID` / `OIDC_CLIENT_SECRET` / `OIDC_REDIRECT_URI` / `OIDC_SCOPE`（默认 `openid profile email`）/ `OIDC_USERNAME_CLAIM`（默认 `preferred_username`）
    - `SESSION_SECRET`（必填）、`SESSION_COOKIE_NAME`（默认 `lt_session`）、`SESSION_TTL`（默认 7 天）
    - 静态目录：运行入口 `import.meta.url` 同级的 `public/`（构建产物 `dist/public`），开发时回退到项目根 `public/`，可用 `STATIC_DIR` 覆盖
@@ -72,17 +74,17 @@
 10. `src/controller/proxy.controller.ts`（不使用 api() 信封中间件，透传原生响应）：
     - `POST /api/translate` → 读取 JSON body，登录用户 + 已配置 `LT_API_KEY` 时注入 `api_key`，`fetch` 转发到 `LT_API_URL/translate`，透传状态码 + JSON body
     - `POST /api/translate_file` → formidable 解析 multipart，重建 FormData 转发到 `LT_API_URL/translate_file`（注入 `api_key` 逻辑同上），透传 JSON（`translatedFileUrl` 原样返回，前端 `<a download>` 直接下载）
-    - `GET /api/config` → `{apiUrl}`（公开，未登录直连需用）
+    - `GET /api/config` → `{apiUrl, loginCharLimit?}`（公开，未登录直连需用；配置了 `LT_LOGIN_CHAR_LIMIT` 时附带该字段供登录用户放宽输入）
 
 ### 阶段 5：前端（原生 TS + esbuild）
 11. `public/` 静态目录：`index.html`、`css/style.css`、`manifest.webmanifest`、`sw.js`、`icons/icon-192.png`、`icons/icon-512.png`、`icons/maskable-512.png`、`favicon.svg`、`locales/en.json`、`locales/zh-Hans.json`
 12. `src/frontend/`：
     - `types.ts` — 类型定义
-    - `api.ts` — 直连/代理决策：`GET /api/config` 拿 apiUrl，`GET /api/auth/status` 拿登录态；未登录直连 `{apiUrl}/languages|frontend/settings|translate|translate_file`；登录走 `/api/translate|translate_file`
+    - `api.ts` — 直连/代理决策：`GET /api/config` 拿 apiUrl 与 `loginCharLimit`，`GET /api/auth/status` 拿登录态；未登录直连 `{apiUrl}/languages|frontend/settings|translate|translate_file`；登录走 `/api/translate|translate_file`
     - `i18n.ts` — 运行时加载 `/locales/{lang}.json`，`t(key)`，语言切换，默认 `navigator.language`；语言列表内置，扩展 = 增加 JSON 与语言元数据
     - `theme.ts` — 深色/浅色切换（`prefers-color-scheme` + `localStorage`）
     - `auth.ts` — 登录/登出按钮 + 用户名渲染（无头像）
-    - `translate.ts` — 翻译窗口：语言下拉（auto 仅源语言、目标按 `source.targets` 过滤、交换）、500ms 防抖、字符计数（`charLimit` 为 -1 时不显示）、复制/清空、`detectedLanguage` 显示、多版本译文展示（主译文 + alternatives，点击采用替换主译文）、文件翻译标签
+    - `translate.ts` — 翻译窗口：语言下拉（auto 仅源语言、目标按 `source.targets` 过滤、交换）、500ms 防抖、字符计数（`charLimit` 为 -1 时不显示；登录用户且配置了 `LT_LOGIN_CHAR_LIMIT` 时以该值覆盖 `settings.charLimit`）、复制/清空、`detectedLanguage` 显示、多版本译文展示（主译文 + alternatives，点击采用替换主译文）、文件翻译标签
     - `main.ts` — 入口：初始化、注册 SW、渲染
 
 ### 阶段 6：构建、部署与文档
@@ -114,15 +116,16 @@
 4. 完成 OIDC 登录（Keycloak 标准流 + S256 PKCE）后 `/api/auth/status` 返回 `loggedIn: true` 与用户名（`preferred_username`）
 5. 翻译响应展示主译文 + 备选版本，点击备选版本可替换主译文
 6. 登录后 `POST /api/translate` 返回 `translatedText`，代理正确注入 `api_key`（与未登录直连对照）
-7. 文件翻译上传 `.txt` 返回 `translatedFileUrl` 可下载
-8. PWA：DevTools 校验 Manifest 有效、Service Worker 注册成功、可离线打开壳
-9. 移动端响应式：375px 宽度下翻译窗口与登录按钮正常
-10. 中英切换：UI 文案与语言下拉名称同步变化
+7. 配置 `LT_LOGIN_CHAR_LIMIT=100000` 后：`/api/config` 返回 `loginCharLimit`；登录用户输入框上限与字符计数变为 100000，未登录仍为上游 5000
+8. 文件翻译上传 `.txt` 返回 `translatedFileUrl` 可下载
+9. PWA：DevTools 校验 Manifest 有效、Service Worker 注册成功、可离线打开壳
+10. 移动端响应式：375px 宽度下翻译窗口与登录按钮正常
+11. 中英切换：UI 文案与语言下拉名称同步变化
 
 ## 决策与范围边界
 
 - 不实现本地用户名密码；仅 OIDC
-- 不实现限额/配额管理；仅代理透传
+- 不实现限额/配额管理；仅代理透传（登录用户输入上限由 `LT_LOGIN_CHAR_LIMIT` 手工配置，因上游无查询 key 配额的 API）
 - 不做 per-user 自带 API key 输入（原版 `setApiKey` 功能，范围外）
 - 不做 suggestions 建议翻译（目标 API 未开启）
 - 头像显示暂不做（仅用户名）

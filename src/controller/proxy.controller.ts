@@ -12,10 +12,12 @@ import { Controller } from './controller';
  * 响应透传 LibreTranslate 原生 JSON（不使用 {success,code,result} 信封）。
  */
 class Proxy extends Controller {
-	/** GET /api/config：暴露上游 API 地址（供未登录用户前端直连） */
+	/** GET /api/config：暴露上游 API 地址与登录用户字符上限（供前端未登录直连/登录放宽输入） */
 	public async config(ctx: IContext) {
 		sendJson(ctx.res, 200, {
 			apiUrl: CONFIG.lt.apiUrl,
+			// 0 表示未配置，不带该字段（前端登录态仍沿用上游匿名限制）
+			...(CONFIG.lt.loginCharLimit > 0 ? { loginCharLimit: CONFIG.lt.loginCharLimit } : {}),
 		});
 	}
 

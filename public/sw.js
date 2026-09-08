@@ -9,7 +9,7 @@ const CACHE_NAME = CACHE_VERSION;
 const PRECACHE_URLS = [
 	'/index.html',
 	'/css/style.css',
-	'/assets/main-JFIFZTYB.js',
+	'/assets/main-BU2Z4IBX.js',
 	'/manifest.webmanifest',
 	'/favicon.svg',
 	'/locales/en.json',

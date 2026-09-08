@@ -1,6 +1,8 @@
 /** /api/config 返回结构 */
 export interface AppConfig {
 	apiUrl: string;
+	/** 登录用户的前端字符上限（可选；未配置时为 undefined，沿用上游匿名限制） */
+	loginCharLimit?: number;
 }
 
 /** /api/auth/status 返回结构 */
