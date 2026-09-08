@@ -1,7 +1,7 @@
 {
-	"appName": "在线翻译",
-	"tagline": "自由开源机器翻译",
-	"footerNote": "Built with all the love in the world by XiaoXi.",
+	"appName": "Open Translate",
+	"tagline": "自由开源的机器翻译",
+	"footerNote": "Built with all the love in the world by [XiaoXi](https://soraharu.com/).",
 	"language": "语言",
 	"toggleTheme": "切换颜色主题",
 	"login": "登录",

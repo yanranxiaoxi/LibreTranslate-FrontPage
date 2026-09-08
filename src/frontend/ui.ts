@@ -42,6 +42,43 @@ export function el<K extends keyof HTMLElementTagNameMap>(
 }
 
 /**
+ * 把文案中的 Markdown 行内链接语法 `[文字](url)` 渲染为 DOM 节点数组。
+ *
+ * 用于 footerNote 这类需要内嵌链接的文案；只接受 http/https 链接，
+ * 其余按纯文本处理，避免 javascript: 等危险协议（文案来自本地 locale 文件，
+ * 但仍按不可信输入处理）。不解析其它 Markdown 语法。
+ */
+export function textWithLinks(text: string): Array<HTMLElement | string> {
+	const nodes: Array<HTMLElement | string> = [];
+	const regex = /\[([^\]]+)\]\(([^)\s]+)\)/g;
+	let lastIndex = 0;
+	for (const match of text.matchAll(regex)) {
+		const [full, label, href] = match;
+		const index = match.index ?? 0;
+		if (index > lastIndex) {
+			nodes.push(text.slice(lastIndex, index));
+		}
+		if (/^https?:\/\//i.test(href)) {
+			const a = document.createElement('a');
+			a.textContent = label;
+			a.href = href;
+			a.target = '_blank';
+			a.rel = 'noopener noreferrer';
+			nodes.push(a);
+		}
+		else {
+			// 非法协议：原样输出为文本
+			nodes.push(full);
+		}
+		lastIndex = index + full.length;
+	}
+	if (lastIndex < text.length) {
+		nodes.push(text.slice(lastIndex));
+	}
+	return nodes.length ? nodes : [text];
+}
+
+/**
  * 生成文件名对应的下载文件名（从 translatedFileUrl 中解析）
  */
 export function fileNameFromUrl(url: string): string {

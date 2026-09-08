@@ -494,6 +494,18 @@ main.container {
 	text-align: center;
 }
 
+.footer a {
+	color: var(--text-dim);
+	text-decoration: none;
+	border-bottom: 1px dotted var(--border);
+	transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.footer a:hover {
+	color: var(--accent);
+	border-bottom-color: var(--accent);
+}
+
 /* ===== Toast ===== */
 .toast-box {
 	position: fixed;

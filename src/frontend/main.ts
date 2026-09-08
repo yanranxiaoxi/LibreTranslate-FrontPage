@@ -3,7 +3,7 @@ import { renderAuth } from './auth';
 import { getLang, initI18n, setLang, SUPPORTED_LANGS, t } from './i18n';
 import { initTheme, toggleTheme } from './theme';
 import { initTranslate } from './translate';
-import { el, toast } from './ui';
+import { el, textWithLinks, toast } from './ui';
 
 const ROOT_ID = 'app';
 
@@ -45,7 +45,8 @@ function buildMain(): HTMLElement {
 
 function buildFooter(): HTMLElement {
 	const footer = el('footer', { class: 'container footer' });
-	footer.append(el('p', {}, [t('footerNote')]));
+	// footerNote 支持内嵌 Markdown 链接，如 "Built with ... by [XiaoXi](https://soraharu.com/)."
+	footer.append(el('p', {}, textWithLinks(t('footerNote'))));
 	return footer;
 }
 
