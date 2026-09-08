@@ -8,6 +8,7 @@ export const RUNTIME_EXTERNALS = [
 	'dotenv',
 	'dotenv/config',
 	'formidable',
+	'parameter',
 	'winston',
 	'winston-daily-rotate-file',
 	'openid-client',
@@ -26,7 +27,7 @@ const config: BuildOptions = {
 	outdir: './dist/',
 	sourcemap: 'linked',
 	platform: 'node',
-	format: 'esm', // 保持 ESM，不切换为 CJS
+	format: 'esm',
 	treeShaking: false,
 	ignoreAnnotations: true,
 	define: {},

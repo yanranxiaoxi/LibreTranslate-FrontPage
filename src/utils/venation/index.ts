@@ -32,7 +32,10 @@ export class Venation extends Router {
 				}
 				else {
 					await this.run(ctx as any, path === '/' ? '' : path, routeIndex);
-					if (!res.headersSent) {
+					// 控制器只负责 res.write() 写响应体，统一由这里收尾 end()。
+					// 注意：不能用 !headersSent 判断——write 后 headersSent 已为 true，
+					// 会导致响应永不终止（连接挂起）。应用 !writableEnded 判断是否已 end。
+					if (!res.writableEnded) {
 						res.end();
 					}
 				}

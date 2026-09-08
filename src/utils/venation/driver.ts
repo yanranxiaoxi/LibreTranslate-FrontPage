@@ -20,7 +20,7 @@ export class VenNodeDriver extends VenDriver {
 			this.logger.info(`server is listening on http://${host}:${port}`);
 		});
 
-		// 客户端中途断开等场景：避免未处理的 error 事件导致进程崩溃
+		// 连接健壮性守护：客户端发畸形请求/中途断开时，避免未处理事件导致进程崩溃
 		this.server.on('clientError', (err, socket) => {
 			this.logger.warn(`client error: ${err.message}`);
 			socket.destroy();
