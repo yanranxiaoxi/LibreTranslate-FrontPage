@@ -19,6 +19,8 @@
 	--accent-soft: #eff4ff;
 	--danger: #d92d20;
 	--shadow: 0 1px 3px rgba(16, 24, 40, 0.08), 0 8px 24px rgba(16, 24, 40, 0.06);
+	/* 下拉框箭头（颜色同 --text-dim，随主题切换） */
+	--select-arrow: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2016%2016'%20fill='none'%20stroke='%23667085'%20stroke-width='1.75'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='M4%206l4%204%204-4'/%3E%3C/svg%3E");
 }
 
 :root[data-theme='dark'] {
@@ -33,6 +35,7 @@
 	--accent-soft: #1d2b4a;
 	--danger: #f97066;
 	--shadow: 0 1px 3px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.35);
+	--select-arrow: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2016%2016'%20fill='none'%20stroke='%239aa3b2'%20stroke-width='1.75'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='M4%206l4%204%204-4'/%3E%3C/svg%3E");
 }
 
 /* ===== 基础 ===== */
@@ -207,6 +210,17 @@ a {
 	border-radius: var(--radius-sm);
 	padding: 6px 10px;
 	max-width: 100%;
+	/*
+	 * 自定义下拉箭头：原生箭头紧贴右内边距且间距不可调，改为背景图后
+	 * 用 right 10px 让箭头右边距与文字左边距（padding-left）保持一致。
+	 */
+	appearance: none;
+	background-image: var(--select-arrow);
+	background-repeat: no-repeat;
+	background-position: right 10px center;
+	background-size: 14px 14px;
+	/* 右侧留出箭头宽度 + 间距，避免文字与箭头重叠 */
+	padding-right: 30px;
 }
 
 .lang-select {

@@ -211,6 +211,28 @@ export async function initTranslate(root: HTMLElement): Promise<void> {
 		inputText.maxLength = settings.charLimit;
 	}
 	updateCharCount();
+	focusInputOnLoad(inputText);
+}
+
+/**
+ * 页面加载后把焦点放到输入框，方便直接开始输入。
+ *
+ * 仅桌面端生效：触屏设备自动聚焦会立刻弹起软键盘并顶起页面，体验反而更差。
+ * 若用户已把焦点移到别处（如浏览器自动恢复的表单焦点）则不抢占。
+ */
+function focusInputOnLoad(input: HTMLTextAreaElement): void {
+	if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
+		return;
+	}
+	const active = document.activeElement;
+	if (active && active !== document.body) {
+		return;
+	}
+	// preventScroll：刷新时浏览器会恢复滚动位置，聚焦不应把页面拽回顶部
+	input.focus({ preventScroll: true });
+	// 浏览器可能恢复了上次的输入内容，光标置于末尾便于继续输入
+	const end = input.value.length;
+	input.setSelectionRange(end, end);
 }
 
 function buildShell(filesEnabled: boolean, settings: FrontendSettings): string {
