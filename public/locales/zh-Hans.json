@@ -6,6 +6,7 @@
 	"toggleTheme": "切换颜色主题",
 	"login": "登录",
 	"logout": "退出登录",
+	"ssoLogin": "使用 OpenID Connect 登录",
 	"loginFailed": "登录失败，请重试。",
 	"serverNotConfigured": "服务端尚未配置，请设置 LT_API_URL 环境变量。",
 	"initFailed": "初始化失败，请检查网络后刷新页面。",

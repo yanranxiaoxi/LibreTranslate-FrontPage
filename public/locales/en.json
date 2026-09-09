@@ -6,6 +6,7 @@
 	"toggleTheme": "Toggle color scheme",
 	"login": "Sign in",
 	"logout": "Sign out",
+	"ssoLogin": "Sign in with OpenID Connect",
 	"loginFailed": "Sign in failed, please try again.",
 	"serverNotConfigured": "This server is not configured yet. Please set LT_API_URL.",
 	"initFailed": "Failed to initialize. Please check your connection and refresh.",

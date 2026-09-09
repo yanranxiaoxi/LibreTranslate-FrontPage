@@ -19,9 +19,12 @@ class Auth extends Controller {
 	/** GET /api/auth/status */
 	public async status(ctx: IContext) {
 		const user = getSessionUser(ctx.user);
+		const enabled = oidcEnabled();
 		sendJson(ctx.res, 200, {
 			loggedIn: Boolean(user),
-			authEnabled: oidcEnabled(),
+			authEnabled: enabled,
+			// 未启用登录时不暴露提供商名称；未配置时前端使用本地化默认文案
+			...(enabled && CONFIG.oidc.providerName ? { providerName: CONFIG.oidc.providerName } : {}),
 			user: user ? { username: user.username } : null,
 		});
 	}

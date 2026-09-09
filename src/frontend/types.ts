@@ -9,6 +9,8 @@ export interface AppConfig {
 export interface AuthStatus {
 	loggedIn: boolean;
 	authEnabled: boolean;
+	/** SSO 提供商名称（服务端 OIDC_PROVIDER_NAME；未配置时前端用本地化默认文案） */
+	providerName?: string;
 	user: { username: string } | null;
 }
 

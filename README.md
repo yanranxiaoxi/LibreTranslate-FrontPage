@@ -51,6 +51,7 @@ Browser ── not signed in ───────────────► {L
 | `OIDC_REDIRECT_URI` | no* | — | Callback URI, must exactly match the IdP redirect URI, e.g. `https://your.domain/api/auth/callback` |
 | `OIDC_SCOPE` | no | `openid profile email` | Requested scope |
 | `OIDC_USERNAME_CLAIM` | no | `preferred_username` | Claim used as the user name (use `name`/`sub` for IdPs without it) |
+| `OIDC_PROVIDER_NAME` | no | `Sign in with OpenID Connect` | SSO provider name shown on the login dialog button |
 | `SESSION_SECRET` | no* | — | ≥32 random chars used to sign the session cookie |
 | `SESSION_COOKIE_NAME` | no | `lt_session` | Session cookie name |
 | `SESSION_TTL` | no | `604800` | Session lifetime in seconds |

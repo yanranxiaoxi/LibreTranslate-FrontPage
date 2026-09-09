@@ -77,6 +77,8 @@ export const CONFIG = {
 		scope: validateOptionalEnvVar('OIDC_SCOPE', process.env.OIDC_SCOPE, 'openid profile email'),
 		/** 用户名取自 userinfo 的哪个 claim（Keycloak 为 preferred_username） */
 		usernameClaim: validateOptionalEnvVar('OIDC_USERNAME_CLAIM', process.env.OIDC_USERNAME_CLAIM, 'preferred_username'),
+		/** SSO 提供商名称，显示在登录弹窗按钮上；留空时前端使用本地化默认文案 */
+		providerName: validateOptionalEnvVar('OIDC_PROVIDER_NAME', process.env.OIDC_PROVIDER_NAME),
 	},
 
 	/** 会话配置 */
