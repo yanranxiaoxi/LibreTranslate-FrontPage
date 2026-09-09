@@ -2,80 +2,46 @@ import type { AuthStatus } from './types';
 import { t } from './i18n';
 import { el } from './ui';
 
-/** 当前打开的登录弹窗（同时只允许一个） */
+/** 当前打开的弹窗（同时只允许一个） */
 let activeModal: HTMLElement | null = null;
-/** 关闭动画结束后移除遮罩的定时器 */
-let closeTimer: number | undefined;
+/** 当前弹窗类型，用于登录态变化时判断是否应自动关闭 */
+let activeModalKind: 'login' | 'logout' | null = null;
 /** 弹窗打开前的焦点元素，关闭后归还焦点 */
 let restoreFocus: HTMLElement | null = null;
 
-/** 关闭动画时长（毫秒），需与 style.css 的 .modal-closing 动画时长一致 */
-const MODAL_CLOSE_MS = 160;
-
-/**
- * 关闭动画进行中，忽略重复的关闭请求
- */
-function isClosing(overlay: HTMLElement): boolean {
-	return overlay.classList.contains('modal-closing');
-}
-
 function onKeyDown(event: KeyboardEvent): void {
 	if (event.key === 'Escape') {
-		closeLoginModal();
+		closeModal();
 	}
 }
 
-/** 页面发生滚动时关闭弹窗（覆盖触屏、键盘、滚动条拖动等所有滚动方式） */
-function onPageScroll(): void {
-	closeLoginModal();
-}
-
 /**
- * 关闭登录弹窗（未打开时为空操作）。
- * 遮罩与提示框先播放淡出动画，动画结束后再移除节点。
+ * 关闭弹窗（未打开时为空操作）
  * @param restore - 是否把焦点归还给触发按钮（重渲染时该按钮已被移除，无需归还）
  */
-function closeLoginModal(restore = true): void {
-	const overlay = activeModal;
-	if (!overlay || isClosing(overlay)) {
+function closeModal(restore = true): void {
+	if (!activeModal) {
 		return;
 	}
 	document.removeEventListener('keydown', onKeyDown);
-	window.removeEventListener('scroll', onPageScroll);
-
-	// 标记为关闭中：忽略后续关闭请求，并让遮罩不再拦截点击
-	overlay.classList.add('modal-closing');
-
-	const finish = () => {
-		window.clearTimeout(closeTimer);
-		closeTimer = undefined;
-		overlay.remove();
-		if (activeModal === overlay) {
-			activeModal = null;
-		}
-		if (restore) {
-			restoreFocus?.focus();
-		}
-		restoreFocus = null;
-	};
-
-	// 以 animationend 为准，超时兜底（动画被禁用/元素已脱离文档时事件可能不触发）
-	overlay.addEventListener('animationend', (event) => {
-		if (event.target === overlay) {
-			finish();
-		}
-	});
-	closeTimer = window.setTimeout(finish, MODAL_CLOSE_MS + 60);
+	activeModal.remove();
+	activeModal = null;
+	activeModalKind = null;
+	document.body.classList.remove('modal-open');
+	if (restore) {
+		restoreFocus?.focus();
+	}
+	restoreFocus = null;
 }
 
 /**
- * 打开登录弹窗：半透明遮罩 + 居中提示框，框内为 SSO 提供商登录按钮。
- * 点击遮罩（提示框外部）、滚动或按 Esc 均关闭。
- *
- * 弹窗打开时不锁定页面滚动（避免滚动条消失引起的布局闪烁），
- * 而是让遮罩上的滚动事件穿透到底层页面，同时关闭弹窗。
+ * 打开弹窗：半透明遮罩 + 居中提示框。点击遮罩（提示框外部）或按 Esc 关闭。
+ * @param trigger - 触发元素，关闭后归还焦点
+ * @param kind - 弹窗类型（登录/登出），登录态变化时据此自动关闭
+ * @param children - 提示框内的内容节点
+ * @param focusTarget - 打开后获得焦点的元素（默认第一个按钮）
  */
-function openLoginModal(trigger: HTMLElement, providerName: string): void {
+function openModal(trigger: HTMLElement, kind: 'login' | 'logout', children: HTMLElement[], focusTarget?: HTMLElement): void {
 	if (activeModal) {
 		return;
 	}
@@ -85,43 +51,58 @@ function openLoginModal(trigger: HTMLElement, providerName: string): void {
 	// 仅当点击发生在遮罩本身（而非提示框内部）时关闭
 	overlay.addEventListener('click', (event) => {
 		if (event.target === overlay) {
-			closeLoginModal();
+			closeModal();
 		}
 	});
-	// 遮罩覆盖全屏，滚轮/触屏滚动默认会落在遮罩上而不会滚动页面；
-	// 这里主动把滚动量转交给底层页面，并关闭弹窗。
-	overlay.addEventListener('wheel', (event) => {
-		event.preventDefault();
-		closeLoginModal();
-		window.scrollBy({ top: event.deltaY, left: event.deltaX, behavior: 'instant' });
-	}, { passive: false });
-	// 触屏滑动同样穿透到底层页面（不拦截默认行为，交给浏览器原生滚动）
-	overlay.addEventListener('touchmove', () => {
-		closeLoginModal();
-	}, { passive: true });
 
+	overlay.append(el('div', { class: 'modal-dialog' }, children));
+	document.body.append(overlay);
+	document.body.classList.add('modal-open');
+
+	activeModal = overlay;
+	activeModalKind = kind;
+	document.addEventListener('keydown', onKeyDown);
+	(focusTarget ?? children.find(child => child instanceof HTMLButtonElement))?.focus();
+}
+
+/**
+ * 打开登录弹窗：半透明遮罩 + 居中提示框，框内为 SSO 提供商登录按钮。
+ */
+function openLoginModal(trigger: HTMLElement, providerName: string): void {
 	const ssoButton = el('button', { class: 'btn primary modal-action', type: 'button' }, [providerName]);
 	ssoButton.addEventListener('click', () => {
 		window.location.href = '/api/auth/login';
 	});
 
-	overlay.append(el('div', { class: 'modal-dialog' }, [ssoButton]));
-	document.body.append(overlay);
+	openModal(trigger, 'login', [ssoButton], ssoButton);
+}
 
-	activeModal = overlay;
-	document.addEventListener('keydown', onKeyDown);
-	// 键盘 PageDown/空格、拖动滚动条等引起的滚动也关闭弹窗
-	window.addEventListener('scroll', onPageScroll, { passive: true });
-	ssoButton.focus();
+/**
+ * 打开登出确认弹窗：让用户选择仅登出当前服务，还是同时登出 SSO 系统。
+ */
+function openLogoutModal(trigger: HTMLElement): void {
+	const question = el('p', { class: 'modal-text' }, [t('logoutConfirm')]);
+
+	const localButton = el('button', { class: 'btn ghost modal-action', type: 'button' }, [t('logoutLocal')]);
+	localButton.addEventListener('click', () => {
+		window.location.href = '/api/auth/logout';
+	});
+
+	const ssoButton = el('button', { class: 'btn primary modal-action', type: 'button' }, [t('logoutSso')]);
+	ssoButton.addEventListener('click', () => {
+		window.location.href = '/api/auth/logout?sso=1';
+	});
+
+	openModal(trigger, 'logout', [question, localButton, ssoButton], localButton);
 }
 
 /**
  * 渲染右上角用户区（登录按钮 / 用户名 + 登出）
  */
 export function renderAuth(container: HTMLElement, status: AuthStatus): void {
-	// 已登录或服务端未启用登录时，关闭可能残留的登录弹窗
-	if (status.loggedIn || !status.authEnabled) {
-		closeLoginModal(false);
+	// 登录态变化后弹窗内容可能已失效：登录弹窗在已登录时关闭，登出弹窗在已登出时关闭
+	if ((activeModalKind === 'login' && status.loggedIn) || (activeModalKind === 'logout' && !status.loggedIn) || !status.authEnabled) {
+		closeModal(false);
 	}
 
 	container.replaceChildren();
@@ -134,7 +115,8 @@ export function renderAuth(container: HTMLElement, status: AuthStatus): void {
 	if (status.loggedIn && status.user) {
 		const chip = el('span', { class: 'user-chip' }, [status.user.username]);
 
-		const logout = el('a', { class: 'btn ghost', href: '/api/auth/logout' }, [t('logout')]);
+		const logout = el('button', { class: 'btn ghost', type: 'button' }, [t('logout')]);
+		logout.addEventListener('click', () => openLogoutModal(logout));
 
 		container.append(chip, logout);
 	}

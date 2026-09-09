@@ -1,7 +1,7 @@
 import type { OidcParams } from '../service/oidc';
 import type { IContext } from '../utils/interface';
 import { CONFIG } from '../config/config';
-import { buildAuthorizationUrlFromParams, exchangeCodeAtCallback, fetchUsername, generateOidcParams, oidcEnabled } from '../service/oidc';
+import { buildAuthorizationUrlFromParams, buildEndSessionUrlForLogout, exchangeCodeAtCallback, fetchUsername, generateOidcParams, oidcEnabled } from '../service/oidc';
 import { parseCookies } from '../utils/cookie';
 import { clearCookie, getSessionUser, redirect, sendJson, setCookie } from '../utils/respond';
 import { signSession, signTransientToken, verifyTransientToken } from '../utils/session';
@@ -84,9 +84,25 @@ class Auth extends Controller {
 		}
 	}
 
-	/** GET /api/auth/logout：清除本地会话 */
+	/** GET /api/auth/logout：清除本地会话；?sso=1 时继续跳 IdP 登出（RP-initiated logout） */
 	public async logout(ctx: IContext) {
 		clearCookie(ctx.res, CONFIG.session.cookieName);
+
+		const url = new URL(ctx.req.url ?? '/', 'http://localhost');
+		if (url.searchParams.get('sso') === '1' && oidcEnabled()) {
+			try {
+				const endSessionUrl = await buildEndSessionUrlForLogout();
+				if (endSessionUrl) {
+					redirect(ctx.res, endSessionUrl);
+					return;
+				}
+			}
+			catch (ex) {
+				// IdP discovery 失败：本地会话已清除，退化为直接回首页而非报错
+				ctx.logger.error('oidc end session failed', ex);
+			}
+		}
+
 		redirect(ctx.res, '/');
 	}
 }

@@ -521,7 +521,8 @@ main.container {
 
 .modal-dialog {
 	display: flex;
-	justify-content: center;
+	flex-direction: column;
+	gap: 10px;
 	width: min(92vw, 360px);
 	padding: 28px 24px;
 	background: var(--card);
@@ -529,6 +530,13 @@ main.container {
 	border-radius: var(--radius);
 	box-shadow: var(--shadow);
 	animation: modal-pop-in 0.18s ease;
+}
+
+.modal-text {
+	margin: 0 0 4px;
+	text-align: center;
+	font-size: 0.95rem;
+	color: var(--text);
 }
 
 .modal-action {
@@ -539,13 +547,8 @@ main.container {
 	text-align: center;
 }
 
-/* 关闭：整体渐变淡出 + 提示框轻微回落（时长与 auth.ts 的 MODAL_CLOSE_MS 保持一致） */
-.modal-overlay.modal-closing {
-	animation: modal-fade-out 0.16s ease forwards;
-}
-
-.modal-overlay.modal-closing .modal-dialog {
-	animation: modal-pop-out 0.16s ease forwards;
+body.modal-open {
+	overflow: hidden;
 }
 
 @keyframes modal-fade-in {
@@ -557,15 +560,6 @@ main.container {
 	}
 }
 
-@keyframes modal-fade-out {
-	from {
-		opacity: 1;
-	}
-	to {
-		opacity: 0;
-	}
-}
-
 @keyframes modal-pop-in {
 	from {
 		opacity: 0;
@@ -574,17 +568,6 @@ main.container {
 	to {
 		opacity: 1;
 		transform: translateY(0) scale(1);
-	}
-}
-
-@keyframes modal-pop-out {
-	from {
-		opacity: 1;
-		transform: translateY(0) scale(1);
-	}
-	to {
-		opacity: 0;
-		transform: translateY(8px) scale(0.98);
 	}
 }
 

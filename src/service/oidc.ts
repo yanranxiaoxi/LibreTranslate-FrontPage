@@ -2,6 +2,7 @@ import type { Configuration, TokenEndpointResponse } from 'openid-client';
 import {
 	authorizationCodeGrant,
 	buildAuthorizationUrl,
+	buildEndSessionUrl,
 	calculatePKCECodeChallenge,
 
 	discovery,
@@ -119,4 +120,21 @@ export async function fetchUsername(tokens: TokenEndpointResponse): Promise<{ su
 	}
 
 	return { sub: sub || username || 'unknown', username: username || sub || 'unknown' };
+}
+
+/**
+ * 构建 RP-initiated logout 地址（同时登出 IdP 会话）
+ *
+ * IdP 未提供 end_session_endpoint（如部分简化实现）时返回 null，
+ * 调用方应退化为仅清除本地会话。
+ */
+export async function buildEndSessionUrlForLogout(): Promise<string | null> {
+	const config = await getOidcConfig();
+	if (!config.serverMetadata().end_session_endpoint) {
+		return null;
+	}
+	const params = CONFIG.oidc.postLogoutRedirectUri
+		? { post_logout_redirect_uri: CONFIG.oidc.postLogoutRedirectUri }
+		: undefined;
+	return buildEndSessionUrl(config, params).href;
 }

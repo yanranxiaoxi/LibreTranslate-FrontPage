@@ -51,6 +51,7 @@
 | `OIDC_SCOPE` | 否 | `openid profile email` | 请求的 scope |
 | `OIDC_USERNAME_CLAIM` | 否 | `preferred_username` | 取用户名的 claim（无此字段的 IdP 可改 `name`/`sub`） |
 | `OIDC_PROVIDER_NAME` | 否 | `使用 OpenID Connect 登录` | SSO 提供商名称，显示在登录弹窗的按钮上 |
+| `OIDC_POST_LOGOUT_REDIRECT_URI` | 否 | `OIDC_REDIRECT_URI` 的站点根 | 「同时退出 SSO」时 IdP 回跳地址，需在 IdP 客户端登记 |
 | `SESSION_SECRET` | 否* | — | 会话 Cookie 签名密钥（≥32 位随机串） |
 | `SESSION_COOKIE_NAME` | 否 | `lt_session` | 会话 Cookie 名 |
 | `SESSION_TTL` | 否 | `604800` | 会话有效期（秒） |

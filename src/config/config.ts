@@ -48,6 +48,31 @@ function validateNumberEnvVar(name: string, value: string | undefined, defaultVa
 	return num;
 }
 
+/**
+ * 解析 RP-initiated logout 的回跳地址
+ *
+ * 显式配置 OIDC_POST_LOGOUT_REDIRECT_URI 优先；否则取 OIDC_REDIRECT_URI 的站点根
+ * （如 https://example.com/api/auth/callback → https://example.com/）。
+ * 两者都不可用时返回空串，此时登出仅清本地会话、不跳 IdP。
+ */
+function resolvePostLogoutRedirectUri(): string {
+	const explicit = validateOptionalEnvVar('OIDC_POST_LOGOUT_REDIRECT_URI', process.env.OIDC_POST_LOGOUT_REDIRECT_URI);
+	if (explicit) {
+		return explicit;
+	}
+	const redirectUri = process.env.OIDC_REDIRECT_URI;
+	if (!redirectUri) {
+		return '';
+	}
+	try {
+		return `${new URL(redirectUri).origin}/`;
+	}
+	catch {
+		// 畸形 URL：交由后续 OIDC discovery 报错，这里退化为不跳 IdP
+		return '';
+	}
+}
+
 export const CONFIG = {
 	env: validateEnvVar('ENV_PRODUCT', process.env.ENV_PRODUCT, 'development'),
 	host: validateEnvVar('SERVER_HOST', process.env.SERVER_HOST, '0.0.0.0'),
@@ -79,6 +104,8 @@ export const CONFIG = {
 		usernameClaim: validateOptionalEnvVar('OIDC_USERNAME_CLAIM', process.env.OIDC_USERNAME_CLAIM, 'preferred_username'),
 		/** SSO 提供商名称，显示在登录弹窗按钮上；留空时前端使用本地化默认文案 */
 		providerName: validateOptionalEnvVar('OIDC_PROVIDER_NAME', process.env.OIDC_PROVIDER_NAME),
+		/** 登出 SSO 时 IdP 回跳地址；留空则自动取 OIDC_REDIRECT_URI 的站点根 */
+		postLogoutRedirectUri: resolvePostLogoutRedirectUri(),
 	},
 
 	/** 会话配置 */
