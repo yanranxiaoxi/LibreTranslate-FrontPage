@@ -101,31 +101,39 @@ function initTextareaResize(root: HTMLElement): void {
 	const extraHeight = () => (stacksAlts() ? altHeight() : 0);
 
 	/**
-	 * 同步两侧高度与上下限。
+	 * 同步两侧的上下限。
 	 *
 	 * 输入框的 min/max-height 必须一并叠加 extraHeight：原生 resize 只遵守元素的
-	 * min/max-height，若只限制 baseHeight，用户能把输入框一路拖到低于最小高度。
+	 * min/max-height，若只限制基准高度，用户能把输入框一路拖到低于最小高度。
 	 */
-	const apply = () => {
+	const applyLimits = () => {
 		const extra = extraHeight();
 		input.style.minHeight = `${TEXTAREA_MIN_HEIGHT + extra}px`;
 		input.style.maxHeight = `${TEXTAREA_MAX_HEIGHT + extra}px`;
 		output.style.minHeight = `${TEXTAREA_MIN_HEIGHT}px`;
 		output.style.maxHeight = `${TEXTAREA_MAX_HEIGHT}px`;
-		output.style.height = `${baseHeight}px`;
-		input.style.height = `${baseHeight + extra}px`;
 	};
-	apply();
+
+	/** 按 baseHeight 重写两侧高度（初始化 / 多版本区变化 / 断点切换时使用） */
+	const applyAll = () => {
+		applyLimits();
+		output.style.height = `${baseHeight}px`;
+		input.style.height = `${baseHeight + extraHeight()}px`;
+	};
+	applyAll();
 
 	// 断点切换（双列 ↔ 单列）时重算输入框高度
-	window.matchMedia('(max-width: 720px)').addEventListener('change', () => apply());
+	window.matchMedia('(max-width: 720px)').addEventListener('change', applyAll);
+
+	const clampBase = (value: number) =>
+		Math.min(Math.max(Math.round(value), TEXTAREA_MIN_HEIGHT), TEXTAREA_MAX_HEIGHT);
 
 	const observer = new ResizeObserver((entries) => {
 		for (const entry of entries) {
 			const target = entry.target as HTMLElement;
 			if (target === alts) {
 				// 多版本译文区显示/隐藏/内容变化：重新叠加输入框高度
-				apply();
+				applyAll();
 				continue;
 			}
 			// 用 border-box 高度：contentRect 不含 padding，会把高度误判为最小值
@@ -134,13 +142,21 @@ function initTextareaResize(root: HTMLElement): void {
 				continue;
 			}
 			// 由被拖动的一侧反推基准高度（输入框需先减去叠加部分）
-			const next = target === input ? height - extraHeight() : height;
-			const clamped = Math.min(Math.max(Math.round(next), TEXTAREA_MIN_HEIGHT), TEXTAREA_MAX_HEIGHT);
-			if (clamped === baseHeight) {
+			const next = clampBase(target === input ? height - extraHeight() : height);
+			if (next === baseHeight) {
 				continue;
 			}
-			baseHeight = clamped;
-			apply();
+			baseHeight = next;
+			/*
+			 * 只写另一侧：被拖动的一侧由浏览器原生 resize 掌控，回写它的 height
+			 * 会与拖拽争抢，快速拖动时导致把手越界。
+			 */
+			if (target === input) {
+				output.style.height = `${baseHeight}px`;
+			}
+			else {
+				input.style.height = `${baseHeight + extraHeight()}px`;
+			}
 			storageSet(TEXTAREA_HEIGHT_KEY, String(baseHeight));
 		}
 	});
