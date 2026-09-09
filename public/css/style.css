@@ -342,9 +342,14 @@ main.container {
 }
 
 .io-textarea {
-	flex: 1;
+	/*
+	 * 不使用 flex 尺寸：flex-basis 会覆盖浏览器原生 resize 写入的 height，
+	 * 导致右下角拖拽把手拖不动。高度由 JS 拖拽逻辑维护并持久化。
+	 */
+	flex: none;
 	width: 100%;
-	min-height: 190px;
+	height: 190px;
+	min-height: 120px;
 	border: none;
 	outline: none;
 	resize: vertical;
@@ -621,10 +626,6 @@ body.modal-open {
 @media (max-width: 720px) {
 	.io-grid {
 		grid-template-columns: 1fr;
-	}
-
-	.io-textarea {
-		min-height: 150px;
 	}
 
 	.lang-row {

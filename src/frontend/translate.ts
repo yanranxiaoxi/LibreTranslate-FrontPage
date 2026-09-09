@@ -26,6 +26,13 @@ let debounceTimer: number | undefined;
 let abortCtrl: AbortController | null = null;
 let copyResetTimer: number | undefined;
 
+/** 输入/输出框高度的 localStorage 键 */
+const TEXTAREA_HEIGHT_KEY = 'lt-textarea-height';
+/** 输入/输出框默认高度与上下限（px） */
+const TEXTAREA_DEFAULT_HEIGHT = 190;
+const TEXTAREA_MIN_HEIGHT = 120;
+const TEXTAREA_MAX_HEIGHT = 640;
+
 function qs<T extends HTMLElement>(selector: string, root: ParentNode = document): T {
 	const node = root.querySelector<T>(selector);
 	if (!node) {
@@ -36,6 +43,112 @@ function qs<T extends HTMLElement>(selector: string, root: ParentNode = document
 
 function qsOrNull<T extends HTMLElement>(selector: string, root: ParentNode = document): T | null {
 	return root.querySelector<T>(selector);
+}
+
+/** 安全读取 localStorage（隐私模式/沙箱下可能抛错，一律吞掉） */
+function storageGet(key: string): string | null {
+	try {
+		return localStorage.getItem(key);
+	}
+	catch {
+		return null;
+	}
+}
+
+function storageSet(key: string, value: string): void {
+	try {
+		localStorage.setItem(key, value);
+	}
+	catch {
+		// 忽略
+	}
+}
+
+/** 读取已保存的输入/输出框高度（非法值回退默认） */
+function loadTextareaHeight(): number {
+	const raw = Number(storageGet(TEXTAREA_HEIGHT_KEY));
+	if (!Number.isFinite(raw) || raw <= 0) {
+		return TEXTAREA_DEFAULT_HEIGHT;
+	}
+	return Math.min(Math.max(raw, TEXTAREA_MIN_HEIGHT), TEXTAREA_MAX_HEIGHT);
+}
+
+/**
+ * 让输入框与输出框的右下角把手可拖拽调整高度，并保持两列底部对齐。
+ *
+ * 布局规则：【输入框高度】=【输出框高度】+【更多翻译版本高度】。
+ * 即译文框可能比输入框矮，但左右两列的底边始终齐平，整体更整齐。
+ *
+ * 原生 resize 依赖写入内联 height，但 textarea 若带 flex 尺寸，flex-basis 会
+ * 覆盖该 height（把手因此拖不动）；CSS 已改为 flex: none + 固定 height。
+ * 这里用 ResizeObserver 由被拖动的一侧反推译文框基准高度，再同步另一侧并持久化。
+ */
+function initTextareaResize(root: HTMLElement): void {
+	const input = qsOrNull<HTMLTextAreaElement>('#input-text', root);
+	const output = qsOrNull<HTMLTextAreaElement>('#output-text', root);
+	const alts = qsOrNull<HTMLElement>('#alts', root);
+	if (!input || !output) {
+		return;
+	}
+
+	/** 译文框高度（不含多版本译文区），输入框高度在其基础上叠加多版本区 */
+	let baseHeight = loadTextareaHeight();
+
+	const altHeight = () => (alts && !alts.classList.contains('hidden') ? alts.offsetHeight : 0);
+	/** 双列布局才需要叠加多版本区高度以对齐底部；单列时两框等高更整齐 */
+	const stacksAlts = () => !window.matchMedia('(max-width: 720px)').matches;
+	/** 输入框相对译文框的额外高度 */
+	const extraHeight = () => (stacksAlts() ? altHeight() : 0);
+
+	/**
+	 * 同步两侧高度与上下限。
+	 *
+	 * 输入框的 min/max-height 必须一并叠加 extraHeight：原生 resize 只遵守元素的
+	 * min/max-height，若只限制 baseHeight，用户能把输入框一路拖到低于最小高度。
+	 */
+	const apply = () => {
+		const extra = extraHeight();
+		input.style.minHeight = `${TEXTAREA_MIN_HEIGHT + extra}px`;
+		input.style.maxHeight = `${TEXTAREA_MAX_HEIGHT + extra}px`;
+		output.style.minHeight = `${TEXTAREA_MIN_HEIGHT}px`;
+		output.style.maxHeight = `${TEXTAREA_MAX_HEIGHT}px`;
+		output.style.height = `${baseHeight}px`;
+		input.style.height = `${baseHeight + extra}px`;
+	};
+	apply();
+
+	// 断点切换（双列 ↔ 单列）时重算输入框高度
+	window.matchMedia('(max-width: 720px)').addEventListener('change', () => apply());
+
+	const observer = new ResizeObserver((entries) => {
+		for (const entry of entries) {
+			const target = entry.target as HTMLElement;
+			if (target === alts) {
+				// 多版本译文区显示/隐藏/内容变化：重新叠加输入框高度
+				apply();
+				continue;
+			}
+			// 用 border-box 高度：contentRect 不含 padding，会把高度误判为最小值
+			const height = entry.borderBoxSize?.[0]?.blockSize ?? target.offsetHeight;
+			if (!height) {
+				continue;
+			}
+			// 由被拖动的一侧反推基准高度（输入框需先减去叠加部分）
+			const next = target === input ? height - extraHeight() : height;
+			const clamped = Math.min(Math.max(Math.round(next), TEXTAREA_MIN_HEIGHT), TEXTAREA_MAX_HEIGHT);
+			if (clamped === baseHeight) {
+				continue;
+			}
+			baseHeight = clamped;
+			apply();
+			storageSet(TEXTAREA_HEIGHT_KEY, String(baseHeight));
+		}
+	});
+	observer.observe(input);
+	observer.observe(output);
+	if (alts) {
+		observer.observe(alts);
+	}
 }
 
 /**
@@ -70,6 +183,7 @@ export async function initTranslate(root: HTMLElement): Promise<void> {
 	root.innerHTML = buildShell(filesEnabled, settings);
 	buildLanguageRow();
 	bindEvents(root, filesEnabled);
+	initTextareaResize(root);
 
 	const fileInput = qs<HTMLInputElement>('#file-input', root);
 	const supported = settings.supportedFilesFormat ?? [];
