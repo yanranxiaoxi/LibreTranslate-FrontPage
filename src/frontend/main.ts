@@ -1,3 +1,4 @@
+import type { Theme } from './theme';
 import * as api from './api';
 import { renderAuth } from './auth';
 import { getLang, initI18n, setLang, SUPPORTED_LANGS, t } from './i18n';
@@ -6,6 +7,16 @@ import { initTranslate } from './translate';
 import { el, textWithLinks, toast } from './ui';
 
 const ROOT_ID = 'app';
+
+/** 已应用到 `<html>` 的主题 */
+function currentTheme(): Theme {
+	return document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+}
+
+/** 主题按钮图标：深色主题下显示 ☀（点击切回浅色），浅色主题下显示 ☾ */
+function themeIcon(theme: Theme): string {
+	return theme === 'dark' ? '☀' : '☾';
+}
 
 function buildHeader(): HTMLElement {
 	const header = el('header', { class: 'topbar' });
@@ -22,9 +33,13 @@ function buildHeader(): HTMLElement {
 		void setLang(langSelect.value);
 	});
 
-	const themeBtn = el('button', { 'class': 'icon-btn', 'type': 'button', 'title': t('toggleTheme'), 'aria-label': t('toggleTheme') }, ['◐']);
+	const themeBtn = el('button', { 'class': 'icon-btn', 'type': 'button', 'title': t('toggleTheme'), 'aria-label': t('toggleTheme') }, [
+		themeIcon(currentTheme()),
+	]);
 	themeBtn.addEventListener('click', () => {
-		void toggleTheme();
+		const theme = toggleTheme();
+		themeBtn.setAttribute('aria-label', theme === 'dark' ? t('themeToLight') : t('themeToDark'));
+		themeBtn.textContent = themeIcon(theme);
 	});
 
 	const userArea = el('div', { class: 'user-area', id: 'user-area' });

@@ -4,6 +4,8 @@
 	"footerNote": "Built with all the love in the world by [XiaoXi](https://soraharu.com/).",
 	"language": "Language",
 	"toggleTheme": "Toggle color scheme",
+	"themeToLight": "Switch to light theme",
+	"themeToDark": "Switch to dark theme",
 	"login": "Sign in",
 	"logout": "Sign out",
 	"ssoLogin": "Sign in with OpenID Connect",
