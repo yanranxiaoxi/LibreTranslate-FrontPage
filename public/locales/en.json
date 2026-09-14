@@ -9,6 +9,7 @@
 	"login": "Sign in",
 	"logout": "Sign out",
 	"ssoLogin": "Sign in with OpenID Connect",
+	"accountCenter": "Account center",
 	"logoutConfirm": "How would you like to sign out?",
 	"logoutLocal": "Sign out of this service only",
 	"logoutSso": "Also sign out of SSO",

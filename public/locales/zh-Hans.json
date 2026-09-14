@@ -9,6 +9,7 @@
 	"login": "登录",
 	"logout": "退出登录",
 	"ssoLogin": "使用 OpenID Connect 登录",
+	"accountCenter": "用户中心",
 	"logoutConfirm": "要如何退出登录？",
 	"logoutLocal": "仅退出当前服务",
 	"logoutSso": "同时退出 SSO 系统",

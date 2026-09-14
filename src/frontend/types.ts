@@ -11,6 +11,8 @@ export interface AuthStatus {
 	authEnabled: boolean;
 	/** SSO 提供商名称（服务端 OIDC_PROVIDER_NAME；未配置时前端用本地化默认文案） */
 	providerName?: string;
+	/** SSO 用户中心地址（服务端 OIDC_ACCOUNT_URL）；配置后用户名渲染为指向它的链接 */
+	accountUrl?: string;
 	user: { username: string } | null;
 }
 

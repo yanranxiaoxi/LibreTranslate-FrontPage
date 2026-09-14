@@ -52,6 +52,7 @@ Browser ── not signed in ───────────────► {L
 | `OIDC_SCOPE` | no | `openid profile email` | Requested scope |
 | `OIDC_USERNAME_CLAIM` | no | `preferred_username` | Claim used as the user name (use `name`/`sub` for IdPs without it) |
 | `OIDC_PROVIDER_NAME` | no | `Sign in with OpenID Connect` | SSO provider name shown on the login dialog button |
+| `OIDC_ACCOUNT_URL` | no | — | SSO account centre URL; when set, the user name turns into a link to it (`http`/`https` only) |
 | `OIDC_POST_LOGOUT_REDIRECT_URI` | no | site root of `OIDC_REDIRECT_URI` | Where the IdP returns after "also sign out of SSO"; register it at the IdP |
 | `SESSION_SECRET` | no* | — | ≥32 random chars used to sign the session cookie |
 | `SESSION_COOKIE_NAME` | no | `lt_session` | Session cookie name |

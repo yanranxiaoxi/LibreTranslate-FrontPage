@@ -143,6 +143,16 @@ a {
 	white-space: nowrap;
 }
 
+/* 用户名可跳转用户中心（服务端配置了 OIDC_ACCOUNT_URL）时给出可点击的提示 */
+.user-chip-link:hover {
+	text-decoration: underline;
+}
+
+.user-chip-link:focus-visible {
+	outline: 2px solid var(--accent);
+	outline-offset: 2px;
+}
+
 /* ===== 按钮 / 控件 ===== */
 .btn {
 	display: inline-flex;
