@@ -83,6 +83,7 @@
     - `api.ts` — 直连/代理决策：`GET /api/config` 拿 apiUrl 与 `loginCharLimit`，`GET /api/auth/status` 拿登录态；未登录直连 `{apiUrl}/languages|frontend/settings|translate|translate_file`；登录走 `/api/translate|translate_file`
     - `i18n.ts` — 运行时加载 `/locales/{lang}.json`，`t(key)`，语言切换，默认 `navigator.language`；语言列表内置，扩展 = 增加 JSON 与语言元数据
     - `theme.ts` — 深色/浅色切换（`prefers-color-scheme` + `localStorage`）
+    - `scroll-chrome.ts` — 小屏（`MOBILE_QUERY`）滚动时收起顶栏：向下滚超过阈值收起、向上滚或回到顶部展开，桌面端保持常显。收起用 `transform`（不改高度/`display`，避免重排），收起时加 `inert`（否则 Tab 会落到看不见的按钮上），焦点在顶栏内时拒绝收起。`MOBILE_QUERY` 必须与 `style.css` 里定义收起动作的媒体查询一致。样式表同时补上了 `prefers-reduced-motion: reduce` 覆盖，让该滑出动画在用户要求减少动效时直接切换
     - `auth.ts` — 登录/登出按钮 + 用户名渲染（无头像）
     - `translate.ts` — 翻译窗口：语言下拉（auto 仅源语言、目标按 `source.targets` 过滤、交换）、500ms 防抖、字符计数（`charLimit` 为 -1 时不显示；登录用户且配置了 `LT_LOGIN_CHAR_LIMIT` 时以该值覆盖 `settings.charLimit`）、复制/清空、`detectedLanguage` 显示、多版本译文展示（主译文 + alternatives，点击采用替换主译文）、文件翻译标签
     - `main.ts` — 入口：初始化、注册 SW、渲染

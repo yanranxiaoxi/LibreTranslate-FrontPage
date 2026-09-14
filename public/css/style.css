@@ -678,3 +678,30 @@ body.modal-open {
 		padding: 14px;
 	}
 }
+
+/*
+ * 小屏滚动时收起顶栏
+ *
+ * 由 `src/frontend/scroll-chrome.ts` 给顶栏加 `.chrome-hidden`；断点必须与该模块
+ * 导出的 MOBILE_QUERY 一致。
+ *
+ * 用 transform 而不是高度或 display：顶栏是 sticky，仍然占据原本的空间，
+ * 页面不会重排，正文也不会跳动。页脚是普通文档流内容，无需处理。
+ */
+@media (max-width: 720px) {
+	.topbar {
+		transition: transform 0.25s ease;
+	}
+
+	.topbar.chrome-hidden {
+		transform: translateY(-100%);
+	}
+}
+
+/* 用户要求减少动效时，收起/展开直接切换而不是滑出（避免前庭不适） */
+@media (prefers-reduced-motion: reduce) {
+	* {
+		animation-duration: 0.01ms !important;
+		transition-duration: 0.01ms !important;
+	}
+}

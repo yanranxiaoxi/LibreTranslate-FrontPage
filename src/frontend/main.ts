@@ -2,6 +2,7 @@ import type { Theme } from './theme';
 import * as api from './api';
 import { renderAuth } from './auth';
 import { getLang, initI18n, setLang, SUPPORTED_LANGS, t } from './i18n';
+import { initScrollChrome } from './scroll-chrome';
 import { initTheme, toggleTheme } from './theme';
 import { initTranslate } from './translate';
 import { el, textWithLinks, toast } from './ui';
@@ -98,6 +99,9 @@ async function main(): Promise<void> {
 
 	root.append(buildHeader(), buildMain(), buildFooter());
 	handleLoginFlag();
+
+	// 小屏滚动时收起顶栏；页脚是普通文档流内容，不需要收起
+	initScrollChrome({ top: document.querySelector<HTMLElement>('.topbar') });
 
 	// 渲染用户区（登录/登出/用户名）
 	const userArea = document.getElementById('user-area');
