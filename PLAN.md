@@ -52,7 +52,7 @@
    - `LT_API_URL`（必填，如 `https://translator.api.soraharu.com`）、`LT_API_KEY`（可选，登录代理注入用）
    - `LT_LOGIN_CHAR_LIMIT`（可选，默认 0）：登录用户的前端字符上限，应与 `LT_API_KEY` 在上游的配额一致（如 100000）；0 = 沿用上游匿名限制。因上游 `/frontend/settings` 无法反映 key 配额，需由本服务配置并经 `/api/config` 下发
    - `OIDC_ISSUER` / `OIDC_CLIENT_ID` / `OIDC_CLIENT_SECRET` / `OIDC_REDIRECT_URI` / `OIDC_SCOPE`（默认 `openid profile email`）/ `OIDC_USERNAME_CLAIM`（默认 `preferred_username`）
-   - `OIDC_ACCOUNT_URL`（可选）：SSO 用户中心地址；配置后登录时右上角用户名变为指向它的链接。只接受 `http`/`https`，其它协议（如 `javascript:`）会被丢弃，避免误配把脚本注到 `<a href>` 上
+   - `OIDC_ACCOUNT_URL`（可选）：SSO 用户中心地址；配置后登录时右上角用户名变为指向它的链接，在新标签页打开（`target="_blank"` + `rel="noopener noreferrer"`）。只接受 `http`/`https`，其它协议（如 `javascript:`）会被丢弃，避免误配把脚本注到 `<a href>` 上
    - `SESSION_SECRET`（必填）、`SESSION_COOKIE_NAME`（默认 `lt_session`）、`SESSION_TTL`（默认 7 天）
    - 静态目录：运行入口 `import.meta.url` 同级的 `public/`（构建产物 `dist/public`），开发时回退到项目根 `public/`，可用 `STATIC_DIR` 覆盖
 
