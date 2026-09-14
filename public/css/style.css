@@ -685,7 +685,7 @@ body.modal-open {
  * 由 `src/frontend/scroll-chrome.ts` 给顶栏加 `.chrome-hidden`；断点必须与该模块
  * 导出的 MOBILE_QUERY 一致。
  *
- * 用 transform 而不是高度或 display：顶栏是 sticky，仍然占据原本的空间，
+ * 用 transform 而不是高度或 display：顶栏是 sticky，仍然占据布局中自身的空间，
  * 页面不会重排，正文也不会跳动。页脚是普通文档流内容，无需处理。
  */
 @media (max-width: 720px) {
