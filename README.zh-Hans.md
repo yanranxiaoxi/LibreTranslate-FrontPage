@@ -117,15 +117,28 @@ Service Worker 采用版本化外壳缓存：同源 GET 网络优先（html/js/c
 
 ## Docker
 
+已发布镜像：[`docker.io/yanranxiaoxi/libretranslate-frontpage`](https://hub.docker.com/r/yanranxiaoxi/libretranslate-frontpage)（`latest` 跟随默认分支）。
+
 ```bash
+docker run -d --name libretranslate-frontpage \
+  -p 3001:3001 \
+  -e LT_API_URL=https://translator.api.soraharu.com \
+  -e SESSION_SECRET='...' \
+  docker.io/yanranxiaoxi/libretranslate-frontpage:latest
+```
+
+如需本地构建，再运行自己打的标签：
+
+```bash
+pnpm build
 docker build -t libretranslate-frontpage .
-docker run -p 3001:3001 \
+docker run -d --name libretranslate-frontpage -p 3001:3001 \
   -e LT_API_URL=https://translator.api.soraharu.com \
   -e SESSION_SECRET='...' \
   libretranslate-frontpage
 ```
 
-镜像内会 `pnpm install --prod` 并复制 `dist/`（后端 + `public/`）。
+镜像同时发布在 GitLab 私有仓库：`registry.gitlab.soraharu.com/xiaoxi/libretranslate-frontpage:latest`。镜像内会 `pnpm install --prod` 并复制 `dist/`（后端 + `public/`）。
 
 ## 范围与边界
 

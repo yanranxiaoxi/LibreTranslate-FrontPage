@@ -118,15 +118,28 @@ Service worker keeps a versioned app-shell cache and prefers the network (`no-ca
 
 ## Docker
 
+Published image: [`docker.io/yanranxiaoxi/libretranslate-frontpage`](https://hub.docker.com/r/yanranxiaoxi/libretranslate-frontpage) (`latest` follows the default branch).
+
 ```bash
+docker run -d --name libretranslate-frontpage \
+  -p 3001:3001 \
+  -e LT_API_URL=https://translator.api.soraharu.com \
+  -e SESSION_SECRET='...' \
+  docker.io/yanranxiaoxi/libretranslate-frontpage:latest
+```
+
+To build locally instead, then run your own tag:
+
+```bash
+pnpm build
 docker build -t libretranslate-frontpage .
-docker run -p 3001:3001 \
+docker run -d --name libretranslate-frontpage -p 3001:3001 \
   -e LT_API_URL=https://translator.api.soraharu.com \
   -e SESSION_SECRET='...' \
   libretranslate-frontpage
 ```
 
-The image runs `pnpm install --prod` and copies `dist/` (backend + `public/`).
+The image is also available from the GitLab registry as `registry.gitlab.soraharu.com/xiaoxi/libretranslate-frontpage:latest`. It runs `pnpm install --prod` and copies `dist/` (backend + `public/`).
 
 ## Scope & boundaries
 
