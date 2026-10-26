@@ -1,11 +1,34 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-theme="light">
 <head>
 	<meta charset="utf-8" />
 	<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 	<title>Open Translate</title>
 	<meta name="description" content="Free and open source machine translation web UI" />
+	<meta name="color-scheme" content="light" />
 	<meta name="theme-color" content="#ffffff" />
+	<!-- 首屏主题：在样式表之前同步应用，避免闪白，并让 Dark Reader 等扩展读出原生暗色 -->
+	<script>
+		(function () {
+			var stored = null;
+			try {
+				stored = localStorage.getItem('lt-theme');
+			}
+			catch {
+				// 隐私模式下读取失败，按系统偏好处理
+			}
+			var theme = stored === 'dark' || (stored !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+			document.documentElement.setAttribute('data-theme', theme);
+			var scheme = document.querySelector('meta[name="color-scheme"]');
+			if (scheme) {
+				scheme.setAttribute('content', theme);
+			}
+			var chromeColor = document.querySelector('meta[name="theme-color"]');
+			if (chromeColor) {
+				chromeColor.setAttribute('content', theme === 'dark' ? '#0e1116' : '#ffffff');
+			}
+		})();
+	</script>
 	<link rel="manifest" href="/manifest.webmanifest" />
 	<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
 	<link rel="apple-touch-icon" href="/icons/icon-192.png" />
@@ -16,6 +39,6 @@
 	<noscript>
 		<p style="text-align:center;padding:2rem">Please enable JavaScript to use this translator.</p>
 	</noscript>
-	<script type="module" src="/assets/main-GVQ6J6WP.js"></script>
+	<script type="module" src="/assets/main-CD2MY2DE.js"></script>
 </body>
 </html>

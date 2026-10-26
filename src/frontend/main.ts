@@ -126,8 +126,9 @@ async function main(): Promise<void> {
 		return;
 	}
 
-	await initI18n();
+	// 先应用主题：不依赖语言包，避免等待网络与首屏闪白
 	initTheme();
+	await initI18n();
 
 	document.documentElement.lang = getLang();
 	document.title = t('appName');
