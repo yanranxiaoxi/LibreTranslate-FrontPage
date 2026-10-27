@@ -57,12 +57,12 @@
 | `OIDC_PROVIDER_NAME` | 否 | `使用 OpenID Connect 登录` | SSO 提供商名称，显示在登录弹窗的按钮上 |
 | `OIDC_ACCOUNT_URL` | 否 | — | SSO 用户中心地址；配置后用户名变为指向它的链接（只接受 `http`/`https`） |
 | `OIDC_POST_LOGOUT_REDIRECT_URI` | 否 | `OIDC_REDIRECT_URI` 的站点根 | 「同时退出 SSO」时 IdP 回跳地址，需在 IdP 客户端登记 |
-| `SESSION_SECRET` | 否* | — | 会话 Cookie 签名密钥（≥32 位随机串） |
+| `SESSION_SECRET` | 否* | — | 启用登录时必填，至少 32 字节；填了值就一定校验长度，不足则启动失败 |
 | `SESSION_COOKIE_NAME` | 否 | `lt_session` | 会话 Cookie 名 |
 | `SESSION_TTL` | 否 | `604800` | 会话有效期（秒） |
 | `STATIC_DIR` | 否 | 自动 | 静态目录（生产自动解析 `dist/public`，开发 `public`） |
 
-\* 只有全部 OIDC 字段与 `SESSION_SECRET` 都配置后登录才启用，否则右上角不显示登录入口。
+\* 只有全部 OIDC 字段与 `SESSION_SECRET` 都配置后登录才启用，否则右上角不显示登录入口。未启用登录时可以不填。
 
 其余沿用框架变量：`SERVER_HOST`、`SERVER_PORT`（默认 3001）、`LOG_LEVEL`、`PROJECT_NAME`、`ENV_PRODUCT`。
 
@@ -82,7 +82,7 @@ SESSION_SECRET='...' \
 node dist/index.js
 ```
 
-启动后访问 http://localhost:3001。仅配置 `LT_API_URL` 即可使用翻译功能；完成 OIDC 配置后，页面将显示登录入口。
+启动后访问 http://localhost:3001。仅配置 `LT_API_URL` 即可使用翻译功能；完成 OIDC 配置后页面将显示登录入口（此时还需要至少 32 字节的 `SESSION_SECRET`）。
 
 ## OIDC：Keycloak 对接示例
 

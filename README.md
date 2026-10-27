@@ -58,12 +58,12 @@ Browser ── not signed in ───────────────► {L
 | `OIDC_PROVIDER_NAME` | no | `Sign in with OpenID Connect` | SSO provider name shown on the login dialog button |
 | `OIDC_ACCOUNT_URL` | no | — | SSO account centre URL; when set, the user name turns into a link to it (`http`/`https` only) |
 | `OIDC_POST_LOGOUT_REDIRECT_URI` | no | site root of `OIDC_REDIRECT_URI` | Where the IdP returns after "also sign out of SSO"; register it at the IdP |
-| `SESSION_SECRET` | no* | — | ≥32 random chars used to sign the session cookie |
+| `SESSION_SECRET` | no* | — | Required when login is enabled; at least 32 bytes. A non-empty but shorter value always aborts startup |
 | `SESSION_COOKIE_NAME` | no | `lt_session` | Session cookie name |
 | `SESSION_TTL` | no | `604800` | Session lifetime in seconds |
 | `STATIC_DIR` | no | auto | Static directory (auto resolves: `dist/public` in prod, `public` in dev) |
 
-\* Login is disabled unless all OIDC fields **and** `SESSION_SECRET` are set — the sign-in button is then hidden.
+\* Login is disabled unless all OIDC fields **and** `SESSION_SECRET` are set — the sign-in button is then hidden. Without login the secret may be omitted.
 
 Other inherited server variables: `SERVER_HOST`, `SERVER_PORT` (default 3001), `LOG_LEVEL`, `PROJECT_NAME`, `ENV_PRODUCT`.
 
@@ -83,7 +83,7 @@ SESSION_SECRET='...' \
 node dist/index.js
 ```
 
-Visit http://localhost:3001 once started. Only `LT_API_URL` is required for translation; the sign-in entry appears once OIDC is configured.
+Visit http://localhost:3001 once started. Only `LT_API_URL` is required for translation; the sign-in entry appears once OIDC is configured (and then a ≥32-byte `SESSION_SECRET` is required too).
 
 ## OIDC: Keycloak example
 
