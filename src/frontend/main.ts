@@ -159,16 +159,14 @@ async function main(): Promise<void> {
 		try {
 			await api.loadConfig();
 			if (!api.getApiUrl()) {
-				translator.innerHTML = '';
-				translator.append(el('p', { class: 'config-error' }, [t('serverNotConfigured')]));
+				translator.replaceChildren(el('p', { class: 'config-error' }, [t('serverNotConfigured')]));
 			}
 			else {
 				await initTranslate(translator);
 			}
 		}
 		catch {
-			translator.innerHTML = '';
-			translator.append(el('p', { class: 'config-error' }, [t('initFailed')]));
+			translator.replaceChildren(el('p', { class: 'config-error' }, [t('initFailed')]));
 		}
 	}
 

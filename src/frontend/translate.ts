@@ -2,7 +2,7 @@ import type { FrontendSettings, LangOption, TranslateResult } from './types';
 import * as api from './api';
 import { getLang, t } from './i18n';
 import { ApiError } from './types';
-import { toast, triggerDownload } from './ui';
+import { el, toast, triggerDownload } from './ui';
 
 interface TranslateState {
 	langs: LangOption[];
@@ -196,7 +196,7 @@ export async function initTranslate(root: HTMLElement): Promise<void> {
 	state.targetLang = resolveDefaultTarget(targetPref?.code, targetPref?.name);
 
 	const filesEnabled = settings.filesTranslation !== false;
-	root.innerHTML = buildShell(filesEnabled, settings);
+	root.replaceChildren(buildShell(filesEnabled, settings));
 	buildLanguageRow();
 	bindEvents(root, filesEnabled);
 	initTextareaResize(root);
@@ -235,74 +235,121 @@ function focusInputOnLoad(input: HTMLTextAreaElement): void {
 	input.setSelectionRange(end, end);
 }
 
-function buildShell(filesEnabled: boolean, settings: FrontendSettings): string {
-	const fileTab = filesEnabled
-		? `<button type="button" class="tab" id="tab-file" role="tab" aria-selected="false">${t('fileTab')}</button>`
-		: '';
-	const supported = settings.supportedFilesFormat ?? [];
-	const fileHint = supported.length ? `${t('supportedFormats')}: ${supported.join(' ')}` : '';
-	return `
-	<div class="tabs" role="tablist" aria-label="${t('mode')}">
-		<button type="button" class="tab active" id="tab-text" role="tab" aria-selected="true">${t('textTab')}</button>
-		${fileTab}
-	</div>
-	<div class="lang-row">
-		<div class="field">
-			<label class="field-label" for="src-lang">${t('translateFrom')}</label>
-			<select id="src-lang" class="select" aria-label="${t('translateFrom')}"></select>
-		</div>
-		<button type="button" class="swap-btn" id="swap-btn" title="${t('swap')}" aria-label="${t('swap')}">⇄</button>
-		<div class="field">
-			<label class="field-label" for="tgt-lang">${t('translateTo')}</label>
-			<select id="tgt-lang" class="select" aria-label="${t('translateTo')}"></select>
-		</div>
-	</div>
-	<div class="panel" id="panel-text" role="tabpanel">
-		<div class="io-grid">
-			<div class="io-box">
-				<div class="io-top">
-					<span class="detected" id="detected-lang"></span>
-					<span class="spacer"></span>
-					<span class="char-count" id="char-count"></span>
-					<button type="button" class="btn ghost small" id="clear-btn">${t('clear')}</button>
-				</div>
-				<textarea id="input-text" class="io-textarea" placeholder="${t('inputPlaceholder')}" spellcheck="false"></textarea>
-			</div>
-			<div class="io-box">
-				<div class="io-top">
-					<span class="output-label" id="output-label"></span>
-					<span class="spacer"></span>
-					<button type="button" class="btn small" id="copy-btn">${t('copy')}</button>
-				</div>
-				<textarea id="output-text" class="io-textarea" readonly placeholder="${t('outputPlaceholder')}"></textarea>
-				<div class="alts hidden" id="alts">
-					<div class="alts-title">${t('moreTranslations')}</div>
-					<div class="alts-list" id="alts-list"></div>
-				</div>
-			</div>
-		</div>
-		<div class="status-line" id="status-line"></div>
-	</div>
-	${filesEnabled
-		? `<div class="panel hidden" id="panel-file" role="tabpanel">
-			<div class="file-picker" id="file-picker">
-				<input type="file" id="file-input" hidden />
-				<div class="file-empty" id="file-empty">
-					<div class="file-icon">📄</div>
-					<div class="file-title">${t('chooseFile')}</div>
-					<div class="file-hint" id="file-hint">${fileHint}</div>
-				</div>
-				<div class="file-meta hidden" id="file-meta">
-					<span class="file-name" id="file-name"></span>
-					<button type="button" class="btn ghost small" id="file-remove">${t('removeFile')}</button>
-				</div>
-			</div>
-			<div class="file-actions">
-				<button type="button" class="btn primary" id="file-go">${t('translateFile')}</button>
-			</div>
-			<div class="status-line" id="file-status-line"></div>
-		</div>`
-		: ''}`;
+/**
+ * 构建翻译界面骨架
+ *
+ * 用 DOM 构造而不是 HTML 字符串模板：`supportedFilesFormat` 来自上游
+ * `/frontend/settings`，属于外部数据；拼进模板就会成为注入点（CSP 只是
+ * 兜底，不应依赖它）。所有文案与外部值都经 textContent 写入。
+ */
+function buildShell(filesEnabled: boolean, settings: FrontendSettings): DocumentFragment {
+	const frag = document.createDocumentFragment();
+
+	const tabs = el('div', { 'class': 'tabs', 'role': 'tablist', 'aria-label': t('mode') });
+	tabs.append(
+		el('button', { 'type': 'button', 'class': 'tab active', 'id': 'tab-text', 'role': 'tab', 'aria-selected': 'true' }, [t('textTab')]),
+	);
+	if (filesEnabled) {
+		tabs.append(
+			el('button', { 'type': 'button', 'class': 'tab', 'id': 'tab-file', 'role': 'tab', 'aria-selected': 'false' }, [t('fileTab')]),
+		);
+	}
+
+	const srcField = el('div', { class: 'field' });
+	srcField.append(
+		el('label', { class: 'field-label', for: 'src-lang' }, [t('translateFrom')]),
+		el('select', { 'id': 'src-lang', 'class': 'select', 'aria-label': t('translateFrom') }),
+	);
+
+	const tgtField = el('div', { class: 'field' });
+	tgtField.append(
+		el('label', { class: 'field-label', for: 'tgt-lang' }, [t('translateTo')]),
+		el('select', { 'id': 'tgt-lang', 'class': 'select', 'aria-label': t('translateTo') }),
+	);
+
+	const langRow = el('div', { class: 'lang-row' });
+	langRow.append(
+		srcField,
+		el('button', { 'type': 'button', 'class': 'swap-btn', 'id': 'swap-btn', 'title': t('swap'), 'aria-label': t('swap') }, ['⇄']),
+		tgtField,
+	);
+
+	const inputTop = el('div', { class: 'io-top' });
+	inputTop.append(
+		el('span', { class: 'detected', id: 'detected-lang' }),
+		el('span', { class: 'spacer' }),
+		el('span', { class: 'char-count', id: 'char-count' }),
+		el('button', { type: 'button', class: 'btn ghost small', id: 'clear-btn' }, [t('clear')]),
+	);
+
+	const inputBox = el('div', { class: 'io-box' });
+	inputBox.append(
+		inputTop,
+		el('textarea', { id: 'input-text', class: 'io-textarea', placeholder: t('inputPlaceholder'), spellcheck: 'false' }),
+	);
+
+	const outputTop = el('div', { class: 'io-top' });
+	outputTop.append(
+		el('span', { class: 'output-label', id: 'output-label' }),
+		el('span', { class: 'spacer' }),
+		el('button', { type: 'button', class: 'btn small', id: 'copy-btn' }, [t('copy')]),
+	);
+
+	const alts = el('div', { class: 'alts hidden', id: 'alts' });
+	alts.append(
+		el('div', { class: 'alts-title' }, [t('moreTranslations')]),
+		el('div', { class: 'alts-list', id: 'alts-list' }),
+	);
+
+	const outputBox = el('div', { class: 'io-box' });
+	outputBox.append(
+		outputTop,
+		el('textarea', { id: 'output-text', class: 'io-textarea', readonly: '', placeholder: t('outputPlaceholder') }),
+		alts,
+	);
+
+	const ioGrid = el('div', { class: 'io-grid' });
+	ioGrid.append(inputBox, outputBox);
+
+	const textPanel = el('div', { class: 'panel', id: 'panel-text', role: 'tabpanel' });
+	textPanel.append(ioGrid, el('div', { class: 'status-line', id: 'status-line' }));
+
+	frag.append(tabs, langRow, textPanel);
+
+	if (filesEnabled) {
+		const supported = settings.supportedFilesFormat ?? [];
+		const fileHint = supported.length ? `${t('supportedFormats')}: ${supported.join(' ')}` : '';
+
+		const empty = el('div', { class: 'file-empty', id: 'file-empty' });
+		empty.append(
+			el('div', { class: 'file-icon' }, ['📄']),
+			el('div', { class: 'file-title' }, [t('chooseFile')]),
+			el('div', { class: 'file-hint', id: 'file-hint' }, [fileHint]),
+		);
+
+		const meta = el('div', { class: 'file-meta hidden', id: 'file-meta' });
+		meta.append(
+			el('span', { class: 'file-name', id: 'file-name' }),
+			el('button', { type: 'button', class: 'btn ghost small', id: 'file-remove' }, [t('removeFile')]),
+		);
+
+		const picker = el('div', { class: 'file-picker', id: 'file-picker' });
+		picker.append(
+			el('input', { type: 'file', id: 'file-input', hidden: '' }),
+			empty,
+			meta,
+		);
+
+		const actions = el('div', { class: 'file-actions' });
+		actions.append(el('button', { type: 'button', class: 'btn primary', id: 'file-go' }, [t('translateFile')]));
+
+		const filePanel = el('div', { class: 'panel hidden', id: 'panel-file', role: 'tabpanel' });
+		filePanel.append(picker, actions, el('div', { class: 'status-line', id: 'file-status-line' }));
+
+		frag.append(filePanel);
+	}
+
+	return frag;
 }
 
 function resolveDefaultTarget(code?: string, name?: string): string {
