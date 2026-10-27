@@ -104,7 +104,7 @@ For other IdPs (Authentik, Google, GitLab OIDC, …) adjust `OIDC_ISSUER` and, i
 | `GET` | `/api/auth/status` | `{ loggedIn, authEnabled, user }` |
 | `GET` | `/api/auth/login` | 302 → IdP |
 | `GET` | `/api/auth/callback` | OIDC callback → session cookie → `/` |
-| `GET` | `/api/auth/logout` | clears session → `/` |
+| `GET` | `/api/auth/logout` | clears session → `/` (same-origin only) |
 | `POST` | `/api/translate` | session — proxied text translation (injects `api_key`) |
 | `POST` | `/api/translate_file` | session — proxied file translation |
 | any other GET | `/` or static files | front-end page & assets |
@@ -127,7 +127,9 @@ Every response carries a strict CSP: `script-src 'self'` and `style-src 'self'`,
 - the first-paint theme script lives in `public/theme-init.js` (a blocking `<script src>` before the stylesheet) instead of an inline block;
 - inline `style="…"` attributes and `<style>` elements are not allowed — use classes.
 
-`connect-src` also lists the origin of `LT_API_URL`, because anonymous users call the upstream API directly. `Strict-Transport-Security` is intentionally not sent: TLS terminates at your reverse proxy, so HSTS belongs there.
+`connect-src` also lists the origin of `LT_API_URL`, because anonymous users call the upstream API directly.
+
+Sign-out stays on `GET /api/auth/logout`, so the server rejects cross-site requests (via `Sec-Fetch-Site`, then `Origin`/`Referer` matched against `Host`) — otherwise any site could log a visitor out with a plain link, since `SameSite=Lax` still sends the cookie on top-level cross-site navigation. `Strict-Transport-Security` is intentionally not sent: TLS terminates at your reverse proxy, so HSTS belongs there.
 
 ## Docker
 

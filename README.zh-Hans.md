@@ -103,7 +103,7 @@ node dist/index.js
 | `GET` | `/api/auth/status` | 返回 `{ loggedIn, authEnabled, user }` |
 | `GET` | `/api/auth/login` | 302 跳转 IdP |
 | `GET` | `/api/auth/callback` | OIDC 回调 → 写入会话 Cookie → `/` |
-| `GET` | `/api/auth/logout` | 清除会话 → `/` |
+| `GET` | `/api/auth/logout` | 清除会话 → `/`（仅接受同源请求） |
 | `POST` | `/api/translate` | 会话 | 文本翻译代理（注入 `api_key`） |
 | `POST` | `/api/translate_file` | 会话 | 文件翻译代理 |
 | 其余 GET | `/` 与静态资源 | 前端页面与资源 |
@@ -126,7 +126,9 @@ Service Worker 采用版本化外壳缓存：同源 GET 网络优先（html/js/c
 - 首屏主题脚本是独立文件 `public/theme-init.js`（在样式表之前的阻塞 `<script src>`），不再内联；
 - 不允许内联 `style="…"` 属性与 `<style>` 元素，请改用 class。
 
-`connect-src` 还包含 `LT_API_URL` 的 origin，因为未登录用户会直连上游。**有意不下发** `Strict-Transport-Security`：TLS 在反向代理终止，HSTS 应在那里配置。
+`connect-src` 还包含 `LT_API_URL` 的 origin，因为未登录用户会直连上游。
+
+登出仍保留 `GET /api/auth/logout`，因此服务端会拒绝跨站请求（依次比对 `Sec-Fetch-Site`、`Origin`/`Referer` 与 `Host`）——否则任意站点用一个普通链接就能把访客登出，因为 `SameSite=Lax` 在跨站顶层导航时仍会携带 Cookie。**有意不下发** `Strict-Transport-Security`：TLS 在反向代理终止，HSTS 应在那里配置。
 
 ## Docker
 
