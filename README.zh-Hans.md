@@ -119,6 +119,15 @@ node dist/index.js
 
 Service Worker 采用版本化外壳缓存：同源 GET 网络优先（html/js/css 均 `no-cache`）+ 缓存兜底；改动外壳时请递增 `public/sw.js` 中的 `CACHE_VERSION`。PWA 需要 HTTPS（localhost 除外）。
 
+## 安全响应头
+
+所有响应都带严格 CSP：`script-src 'self'`、`style-src 'self'`，**不使用** `'unsafe-inline'`。因此前端改动有两条约束：
+
+- 首屏主题脚本是独立文件 `public/theme-init.js`（在样式表之前的阻塞 `<script src>`），不再内联；
+- 不允许内联 `style="…"` 属性与 `<style>` 元素，请改用 class。
+
+`connect-src` 还包含 `LT_API_URL` 的 origin，因为未登录用户会直连上游。**有意不下发** `Strict-Transport-Security`：TLS 在反向代理终止，HSTS 应在那里配置。
+
 ## Docker
 
 已发布镜像：[`docker.io/yanranxiaoxi/libretranslate-frontpage`](https://hub.docker.com/r/yanranxiaoxi/libretranslate-frontpage)（`latest` 跟随默认分支）。

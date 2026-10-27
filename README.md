@@ -120,6 +120,15 @@ UI strings and the API-provided language names then follow the selected language
 
 Service worker keeps a versioned app-shell cache and prefers the network (`no-cache` for html/js/css) with cache fallback — bump `CACHE_VERSION` in `public/sw.js` when the shell changes. PWA requires HTTPS (or `localhost`).
 
+## Security headers
+
+Every response carries a strict CSP: `script-src 'self'` and `style-src 'self'`, **without** `'unsafe-inline'`. Two consequences for frontend work:
+
+- the first-paint theme script lives in `public/theme-init.js` (a blocking `<script src>` before the stylesheet) instead of an inline block;
+- inline `style="…"` attributes and `<style>` elements are not allowed — use classes.
+
+`connect-src` also lists the origin of `LT_API_URL`, because anonymous users call the upstream API directly. `Strict-Transport-Security` is intentionally not sent: TLS terminates at your reverse proxy, so HSTS belongs there.
+
 ## Docker
 
 Published image: [`docker.io/yanranxiaoxi/libretranslate-frontpage`](https://hub.docker.com/r/yanranxiaoxi/libretranslate-frontpage) (`latest` follows the default branch).
