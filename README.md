@@ -135,6 +135,8 @@ Sign-out stays on `GET /api/auth/logout`, so the server rejects cross-site reque
 
 Published image: [`docker.io/yanranxiaoxi/libretranslate-frontpage`](https://hub.docker.com/r/yanranxiaoxi/libretranslate-frontpage) (`latest` follows the default branch).
 
+The container runs as the unprivileged `node` user; only `./logs` is writable, so mount it if you want the logs to outlive the container.
+
 ```bash
 docker run -d --name libretranslate-frontpage \
   -p 3001:3001 \

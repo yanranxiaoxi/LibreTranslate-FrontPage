@@ -134,6 +134,8 @@ Service Worker 采用版本化外壳缓存：同源 GET 网络优先（html/js/c
 
 已发布镜像：[`docker.io/yanranxiaoxi/libretranslate-frontpage`](https://hub.docker.com/r/yanranxiaoxi/libretranslate-frontpage)（`latest` 跟随默认分支）。
 
+容器以非 root 的 `node` 用户运行，只有 `./logs` 可写；需要日志持久化时挂载该目录即可。
+
 ```bash
 docker run -d --name libretranslate-frontpage \
   -p 3001:3001 \
