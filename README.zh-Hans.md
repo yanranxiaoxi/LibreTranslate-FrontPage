@@ -18,8 +18,8 @@
 - **智能请求路径**：
   - 未登录：浏览器直连 LibreTranslate API（匿名，受 API 侧匿名限流约束）
   - 已登录：请求经本服务 `/api/*` 代理转发并注入服务端 `api_key`（更稳定、限额更高）
-  - 本服务不做任何限额/配额管理，仅将请求正确代理 / 直连
-- **登录用户更大的输入上限** — 上游 `/frontend/settings` 只返回全局匿名 `charLimit`（如 5000），无法获知 key 的配额。将 `LT_LOGIN_CHAR_LIMIT` 配置为内置 key 在上游的配额（如 `100000`）后，登录用户输入框即放宽至该值，未登录用户仍沿用上游限制。
+  - 代理路径**仅登录用户可用**：会话失效时前端自动退回直连
+- **登录用户更大的输入上限** — 上游 `/frontend/settings` 只返回全局匿名 `charLimit`（如 5000），无法获知 key 的配额。将 `LT_LOGIN_CHAR_LIMIT` 配置为内置 key 在上游的配额（如 `100000`）后，登录用户输入框即放宽至该值，未登录用户仍沿用上游限制。该上限同时由服务端强制校验，无法用自行构造的请求绕过。
 - **仅 OpenID 登录** — 标准授权码流 + S256 PKCE（openid-client v6），至少实测支持 Keycloak；其它 IdP 可通过环境变量适配。展示登录用户名（`preferred_username`），头像暂不处理
 - **PWA** — manifest 与 Service Worker 应用外壳缓存，支持离线打开外壳；上游服务可达时，离线状态亦可直连翻译
 - **多语言** — 内置简体中文与英文；新增语言只需补充 locale 文件并完成注册
@@ -35,7 +35,8 @@
 ```
 
 - `GET /api/config` 返回 `{ apiUrl, loginCharLimit? }`，供浏览器未登录时直连使用，并告知登录后输入框可放宽至的上限。
-- `POST /api/translate` / `POST /api/translate_file` 透传上游响应（状态码与 JSON 原样返回）；内置 `api_key` 仅在会话有效且配置了 `LT_API_KEY` 时由服务端追加。
+- `POST /api/translate` / `POST /api/translate_file` **要求登录**，透传上游响应（状态码与 JSON 原样返回）；内置 `api_key` 仅在会话有效且配置了 `LT_API_KEY` 时由服务端追加。
+- 服务端同时强制 `LT_LOGIN_CHAR_LIMIT`、单文件 `LT_PROXY_MAX_FILE_BYTES`、每用户 `LT_PROXY_RATE_LIMIT` 与全局 `LT_PROXY_CONCURRENCY`，避免代理被当作免费中继或并发放大器。
 
 ## 环境变量
 
@@ -43,7 +44,10 @@
 | --- | --- | --- | --- |
 | `LT_API_URL` | 是 | — | 上游 LibreTranslate 地址，如 `https://translator.api.soraharu.com` |
 | `LT_API_KEY` | 否 | — | 内置 API key，登录用户经代理时注入 |
-| `LT_LOGIN_CHAR_LIMIT` | 否 | `0` | 登录用户的字符上限，应与内置 key 在上游的配额一致（如 `100000`）；`0` = 沿用上游匿名限制 |
+| `LT_LOGIN_CHAR_LIMIT` | 否 | `0` | 登录用户的字符上限，应与内置 key 在上游的配额一致（如 `100000`）；`0` = 沿用上游匿名限制。服务端同样按此校验 |
+| `LT_PROXY_RATE_LIMIT` | 否 | `120` | 每个登录用户每分钟可发起的代理请求数 |
+| `LT_PROXY_CONCURRENCY` | 否 | `32` | 同时进行的上游代理请求上限（单实例） |
+| `LT_PROXY_MAX_FILE_BYTES` | 否 | `10485760` | 单个上传文件的字节上限（10 MiB） |
 | `OIDC_ISSUER` | 否* | — | OpenID Provider 的 issuer 地址（如 Keycloak realm） |
 | `OIDC_CLIENT_ID` | 否* | — | OIDC 客户端 ID |
 | `OIDC_CLIENT_SECRET` | 否* | — | OIDC 客户端密钥 |
@@ -100,8 +104,8 @@ node dist/index.js
 | `GET` | `/api/auth/login` | 302 跳转 IdP |
 | `GET` | `/api/auth/callback` | OIDC 回调 → 写入会话 Cookie → `/` |
 | `GET` | `/api/auth/logout` | 清除会话 → `/` |
-| `POST` | `/api/translate` | 文本翻译代理（登录时注入 `api_key`） |
-| `POST` | `/api/translate_file` | 文件翻译代理 |
+| `POST` | `/api/translate` | 会话 | 文本翻译代理（注入 `api_key`） |
+| `POST` | `/api/translate_file` | 会话 | 文件翻译代理 |
 | 其余 GET | `/` 与静态资源 | 前端页面与资源 |
 
 ## 新增语言

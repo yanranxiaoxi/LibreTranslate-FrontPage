@@ -114,6 +114,12 @@ export const CONFIG = {
 		apiKey: validateOptionalEnvVar('LT_API_KEY', process.env.LT_API_KEY),
 		/** 登录用户的前端字符上限（与内置 key 配额一致；0 = 不覆盖，沿用上游匿名限制） */
 		loginCharLimit: validateNumberEnvVar('LT_LOGIN_CHAR_LIMIT', process.env.LT_LOGIN_CHAR_LIMIT, 0),
+		/** 每个登录用户每分钟可发起的代理请求数（默认 120） */
+		proxyRateLimit: validateNumberEnvVar('LT_PROXY_RATE_LIMIT', process.env.LT_PROXY_RATE_LIMIT, 120),
+		/** 同时进行的上游代理请求上限（默认 32） */
+		proxyConcurrency: validateNumberEnvVar('LT_PROXY_CONCURRENCY', process.env.LT_PROXY_CONCURRENCY, 32),
+		/** 单个上传文件的字节上限（默认 10 MiB） */
+		proxyMaxFileBytes: validateNumberEnvVar('LT_PROXY_MAX_FILE_BYTES', process.env.LT_PROXY_MAX_FILE_BYTES, 10 * 1024 * 1024),
 	},
 
 	/** OpenID Connect 登录配置（全部配置后才启用登录） */

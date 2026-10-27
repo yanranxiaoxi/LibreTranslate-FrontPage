@@ -3,6 +3,8 @@ import { Buffer } from 'node:buffer';
 
 /** JSON 请求体最大字节数（超限拒绝，防内存 DoS） */
 export const MAX_JSON_BODY = 2 * 1024 * 1024;
+/** 上游响应体最大字节数（超限中断读取，防异常响应撑爆内存） */
+export const MAX_UPSTREAM_BODY = 8 * 1024 * 1024;
 /** 上游代理请求超时（毫秒） */
 export const UPSTREAM_TIMEOUT = 30 * 1000;
 
@@ -38,6 +40,52 @@ export async function readJsonBody(req: IncomingMessage): Promise<Record<string,
 }
 
 /**
+ * 读取上游响应文本（带上限）
+ * @param response - 上游响应
+ * @param max - 字节上限
+ * @returns 正常时返回文本；超限返回 null（已中断读取）
+ */
+export async function readTextWithLimit(response: Response, max = MAX_UPSTREAM_BODY): Promise<string | null> {
+	const declared = Number(response.headers.get('content-length'));
+	if (Number.isFinite(declared) && declared > max) {
+		await response.body?.cancel().catch(() => {});
+		return null;
+	}
+	if (!response.body) {
+		return '';
+	}
+
+	const reader = response.body.getReader();
+	const chunks: Uint8Array[] = [];
+	let size = 0;
+	try {
+		for (;;) {
+			const { done, value } = await reader.read();
+			if (done) {
+				break;
+			}
+			size += value.byteLength;
+			if (size > max) {
+				await reader.cancel().catch(() => {});
+				return null;
+			}
+			chunks.push(value);
+		}
+	}
+	finally {
+		reader.releaseLock();
+	}
+
+	const merged = new Uint8Array(size);
+	let offset = 0;
+	for (const chunk of chunks) {
+		merged.set(chunk, offset);
+		offset += chunk.byteLength;
+	}
+	return new TextDecoder().decode(merged);
+}
+
+/**
  * 返回带超时且异常时不抛的 fetch 控制器
  */
 export function upstreamFetchTimeout(): AbortSignal {
@@ -46,12 +94,14 @@ export function upstreamFetchTimeout(): AbortSignal {
 
 /**
  * 解析 multipart/form-data 请求（formidable）
+ * @param req - 请求对象
+ * @param maxFileSize - 单文件字节上限
  */
-export async function parseMultipart(req: IncomingMessage): Promise<Record<string, unknown>> {
+export async function parseMultipart(req: IncomingMessage, maxFileSize = 20 * 1024 * 1024): Promise<Record<string, unknown>> {
 	const { default: formidable } = await import('formidable');
 	const form = formidable({
 		multiples: false,
-		maxFileSize: 20 * 1024 * 1024,
+		maxFileSize,
 		maxFields: 20,
 	});
 	return await new Promise((resolve, reject) => {

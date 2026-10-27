@@ -165,9 +165,9 @@ export async function translateText(payload: TranslatePayload, signal?: AbortSig
 }
 
 /**
- * 文件翻译：路径选择同文本翻译
+ * 文件翻译：路径选择同文本翻译；会话过期（代理返回 401）时刷新登录态并自动重试直连上游。
  */
-export async function translateFile(file: File, source: string, target: string, signal?: AbortSignal): Promise<{ translatedFileUrl: string }> {
+async function translateFileOnce(file: File, source: string, target: string, signal?: AbortSignal): Promise<{ translatedFileUrl: string }> {
 	const form = new FormData();
 	form.append('file', file);
 	form.append('source', source);
@@ -178,4 +178,29 @@ export async function translateFile(file: File, source: string, target: string, 
 		body: form,
 		signal,
 	});
+}
+
+/**
+ * 文件翻译：未登录直连上游 API，登录走本服务代理
+ */
+export async function translateFile(file: File, source: string, target: string, signal?: AbortSignal): Promise<{ translatedFileUrl: string }> {
+	try {
+		return await translateFileOnce(file, source, target, signal);
+	}
+	catch (err) {
+		// 会话中途过期/失效：刷新登录态，若确已登出则改为直连重试一次
+		if (err instanceof ApiError && err.status === 401) {
+			try {
+				await loadAuthStatus();
+			}
+			catch {
+				statusCache = { loggedIn: false, authEnabled: false, user: null };
+				notifyAuthChange(statusCache);
+			}
+			if (!isLoggedIn()) {
+				return await translateFileOnce(file, source, target, signal);
+			}
+		}
+		throw err;
+	}
 }

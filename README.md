@@ -19,8 +19,8 @@ A complete front-end service for a [LibreTranslate](https://github.com/LibreTran
 - **Smart request path**:
   - Not signed in → the browser calls the LibreTranslate API directly (anonymous, subject to its anonymous rate limits)
   - Signed in → requests go through this service's `/api/*` proxy, which injects the server-side `api_key` (higher, dedicated quota)
-  - No quota/usage management is implemented here; requests are simply proxied / passed through
-- **Higher input limit for signed-in users** — upstream `/frontend/settings` only exposes the global anonymous `charLimit` (e.g. 5000) and cannot report a key's quota. Set `LT_LOGIN_CHAR_LIMIT` to the built-in key's quota (e.g. `100000`); signed-in users then get the wider input box while anonymous users keep the upstream limit.
+  - The proxy path is **signed-in only**; when the session expires the client falls back to the direct path
+- **Higher input limit for signed-in users** — upstream `/frontend/settings` only exposes the global anonymous `charLimit` (e.g. 5000) and cannot report a key's quota. Set `LT_LOGIN_CHAR_LIMIT` to the built-in key's quota (e.g. `100000`); signed-in users then get the wider input box while anonymous users keep the upstream limit. The same limit is enforced server-side, so a hand-crafted request cannot bypass it.
 - **OpenID Connect sign-in only** — standard authorization code flow + S256 PKCE (`openid-client` v6). Verified with Keycloak; other IdPs can be adapted via environment variables. Shows the signed-in user name (`preferred_username`); avatars are out of scope.
 - **PWA** — `manifest.webmanifest` plus a service worker with versioned app-shell caching; the shell opens offline and, when the upstream is reachable, direct-to-API translation remains available
 - **i18n** — Simplified Chinese & English built in; adding a language requires only a locale file plus one registration entry
@@ -36,7 +36,8 @@ Browser ── not signed in ───────────────► {L
 ```
 
 - `GET /api/config` returns `{ apiUrl, loginCharLimit? }` so the browser knows where to call directly when signed out, and how wide the input box may be once signed in.
-- `POST /api/translate` / `POST /api/translate_file` transparently proxy the upstream response (same status code & JSON body). The built-in `api_key` is appended server-side only when the session user is valid and `LT_API_KEY` is configured.
+- `POST /api/translate` / `POST /api/translate_file` **require a session** and transparently proxy the upstream response (same status code & JSON body). The built-in `api_key` is appended server-side only when the session user is valid and `LT_API_KEY` is configured.
+- The server also enforces `LT_LOGIN_CHAR_LIMIT`, the per-file `LT_PROXY_MAX_FILE_BYTES`, the per-user `LT_PROXY_RATE_LIMIT` and the global `LT_PROXY_CONCURRENCY`, so the proxy cannot be used as a free relay or a concurrency amplifier.
 
 ## Environment variables
 
@@ -44,7 +45,10 @@ Browser ── not signed in ───────────────► {L
 | --- | --- | --- | --- |
 | `LT_API_URL` | yes | — | Upstream LibreTranslate base URL, e.g. `https://translator.api.soraharu.com` |
 | `LT_API_KEY` | no | — | Built-in API key injected by the proxy for signed-in users |
-| `LT_LOGIN_CHAR_LIMIT` | no | `0` | Character limit for signed-in users; should match the built-in key's upstream quota (e.g. `100000`). `0` = keep the upstream anonymous limit |
+| `LT_LOGIN_CHAR_LIMIT` | no | `0` | Character limit for signed-in users; should match the built-in key's upstream quota (e.g. `100000`). `0` = keep the upstream anonymous limit. Also enforced server-side |
+| `LT_PROXY_RATE_LIMIT` | no | `120` | Proxy requests allowed per signed-in user per minute |
+| `LT_PROXY_CONCURRENCY` | no | `32` | Maximum in-flight upstream proxy requests (per instance) |
+| `LT_PROXY_MAX_FILE_BYTES` | no | `10485760` | Maximum size of a single uploaded file (10 MiB) |
 | `OIDC_ISSUER` | no* | — | OpenID Provider issuer URL (e.g. `https://sso.example.com/realms/master`) |
 | `OIDC_CLIENT_ID` | no* | — | OIDC client id |
 | `OIDC_CLIENT_SECRET` | no* | — | OIDC client secret |
@@ -101,8 +105,8 @@ For other IdPs (Authentik, Google, GitLab OIDC, …) adjust `OIDC_ISSUER` and, i
 | `GET` | `/api/auth/login` | 302 → IdP |
 | `GET` | `/api/auth/callback` | OIDC callback → session cookie → `/` |
 | `GET` | `/api/auth/logout` | clears session → `/` |
-| `POST` | `/api/translate` | proxied text translation (injects `api_key` when signed in) |
-| `POST` | `/api/translate_file` | proxied file translation |
+| `POST` | `/api/translate` | session — proxied text translation (injects `api_key`) |
+| `POST` | `/api/translate_file` | session — proxied file translation |
 | any other GET | `/` or static files | front-end page & assets |
 
 ## Add a language
